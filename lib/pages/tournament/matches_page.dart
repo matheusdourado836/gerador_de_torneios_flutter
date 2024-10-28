@@ -133,7 +133,6 @@ class _MatchesPageState extends State<MatchesPage> {
 
   @override
   Widget build(BuildContext context) {
-    print('VAO TER ${partidasDivided.length} RODADAS');
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,

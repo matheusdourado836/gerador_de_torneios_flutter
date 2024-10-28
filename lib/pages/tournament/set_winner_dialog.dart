@@ -65,7 +65,7 @@ class _SetWinnerDialogState extends State<SetWinnerDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, [_timeA, _setPoints]), child: const Text('Salvar')),
+        TextButton(onPressed: () => Navigator.pop(context, [_timeA, _setPoints, widget.partida.team1, widget.partida.team2]), child: const Text('Salvar')),
       ],
     );
   }

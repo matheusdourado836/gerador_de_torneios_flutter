@@ -18,6 +18,7 @@ class _EditPlayersDialogState extends State<EditPlayersDialog> {
   late Player _secondPlayer;
   late String _firstPlayerName;
   late String _secondPlayerName;
+  late List<Player> innerList;
   late List<Player> availablePlayers1;
   late List<Player> availablePlayers2;
 
@@ -25,6 +26,7 @@ class _EditPlayersDialogState extends State<EditPlayersDialog> {
   void initState() {
     super.initState();
     dataProvider = Provider.of<DataController>(context, listen: false);
+    innerList = dataProvider.players;
 
     // Inicializar os jogadores
     _firstPlayer = widget.team.first;
@@ -33,11 +35,11 @@ class _EditPlayersDialogState extends State<EditPlayersDialog> {
     _secondPlayerName = _secondPlayer.nome!;
 
     // Filtrar jogadores disponíveis e adicionar o jogador atual, evitando duplicatas
-    availablePlayers1 = dataProvider.players
+    availablePlayers1 = dataProvider.tournament!.jogadores!
         .where((player) =>
     (widget.team.where((p) => p.nome == player.nome).isEmpty && widget.otherTeam.where((p) => p.nome == player.nome).isEmpty))
         .toList();
-    availablePlayers2 = dataProvider.players
+    availablePlayers2 = dataProvider.tournament!.jogadores!
         .where((player) =>
     (widget.team.where((p) => p.nome == player.nome).isEmpty && widget.otherTeam.where((p) => p.nome == player.nome).isEmpty))
         .toList();
@@ -95,16 +97,3 @@ class _EditPlayersDialogState extends State<EditPlayersDialog> {
     );
   }
 }
-
-List<Player> players = [
-  Player.withName('MatheusComBumBum', 0),
-  Player.withName('Pedro', 0),
-  Player.withName('Joao', 0),
-  Player.withName('Ricardo', 0),
-  Player.withName('Victor', 0),
-  Player.withName('Diego', 0),
-  Player.withName('Luis', 0),
-  Player.withName('Marcos', 0),
-  Player.withName('Andre', 0),
-  Player.withName('Daniel', 0),
-];

@@ -1,5 +1,5 @@
 import 'dart:ui';
-
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -9,12 +9,12 @@ import 'package:volleyball_tournament_app/pages/players/players_page.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:volleyball_tournament_app/pages/tournament/matches_page.dart';
 import 'package:volleyball_tournament_app/pages/tournament/tournament_page.dart';
-import 'package:volleyball_tournament_app/teste.dart';
 import 'controller/data_controller.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  setUrlStrategy(PathUrlStrategy());
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
