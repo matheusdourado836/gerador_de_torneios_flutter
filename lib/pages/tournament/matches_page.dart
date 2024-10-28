@@ -172,9 +172,7 @@ class _MatchesPageState extends State<MatchesPage> {
                           child: ElevatedButton(onPressed: () => generate2x2game(misto: dataProvider.tournament?.misto ?? false), child: const Text('Gerar times'))
                         )
                       else
-                        SizedBox(
-                        width: MediaQuery.sizeOf(context).width * .6,
-                        child: ListView.separated(
+                        ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: partidasDivided[currentRound].length,
@@ -182,9 +180,10 @@ class _MatchesPageState extends State<MatchesPage> {
                           itemBuilder: (context, index) {
                             final team1 = partidasDivided[currentRound][index].team1;
                             final team2 = partidasDivided[currentRound][index].team2;
-                
+
                             return Row(
                               children: [
+                                const SizedBox(width: 8),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -227,19 +226,19 @@ class _MatchesPageState extends State<MatchesPage> {
                                         backgroundColor: partidasDivided[currentRound][index].vencedor != null ? Colors.blue : const Color.fromRGBO(42, 35, 42, 1)
                                     ),
                                     child: partidasDivided[currentRound][index].vencedor != null ? const Text('EDITAR') : const Text('FINALIZAR')
-                                )
+                                ),
+                                const SizedBox(width: 8)
                               ],
                             );
                           },
                         ),
-                      ),
                     ],
                   ),
                 ),
               ),
               Center(
                 child: SizedBox(
-                  width: MediaQuery.sizeOf(context).width * .6,
+                  width: MediaQuery.sizeOf(context).width * .8,
                   child: Column(
                     children: [
                       Row(
@@ -262,10 +261,10 @@ class _MatchesPageState extends State<MatchesPage> {
                             children: [
                               SizedBox(
                                   width: 150,
-                                  child: Text(player.nome!)
+                                  child: Text(player.nome!, style: const TextStyle(fontSize: 18),)
                               ),
-                              SizedBox(width: 200, child: Text(player.partidasJogadas!.toString(), textAlign: TextAlign.center,)),
-                              Text('${player.pontos}', style: const TextStyle(fontWeight: FontWeight.bold),)
+                              SizedBox(width: 200, child: Text(player.partidasJogadas!.toString(), style: const TextStyle(fontSize: 18), textAlign: TextAlign.center,)),
+                              Text('${player.pontos}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),)
                             ],),
                         )
                         ).toList(),
@@ -349,16 +348,13 @@ class _PartidaItemState extends State<PartidaItem> {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40.0),
-          child: Text(
-            'X',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: widget.partida.finished ?? false ? 18 : 20,
-              color: widget.partida.finished ?? false ? Colors.black54 : Colors.black
-            )
-          ),
+        Text(
+          'X',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: widget.partida.finished ?? false ? 18 : 20,
+            color: widget.partida.finished ?? false ? Colors.black54 : Colors.black
+          )
         ),
         SizedBox(
           width: 300,
