@@ -23,6 +23,14 @@ class _SetWinnerDialogState extends State<SetWinnerDialog> {
       fixedSize: const Size(240, 45),
   );
 
+  TextStyle selectedTextStyle() => const TextStyle(
+    color: Colors.white,
+  );
+
+  TextStyle unselectedTextStyle() => const TextStyle(
+    color: Colors.grey,
+  );
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -37,7 +45,11 @@ class _SetWinnerDialogState extends State<SetWinnerDialog> {
                 onPressed: () => setState(() => _timeA = true),
                 style: _timeA ? selectedStyle() : unselectedStyle(),
                 child: Column(
-                  children: widget.partida.team1!.map((team) => Text(team.nome!, textAlign: TextAlign.center,)).toList(),
+                  children: widget.partida.team1!.map((team) => Text(
+                    team.nome!,
+                    textAlign: TextAlign.center,
+                    style: _timeA ? selectedTextStyle() : unselectedTextStyle()
+                  )).toList(),
                 )
               ),
               const SizedBox(width: 32),
@@ -45,7 +57,11 @@ class _SetWinnerDialogState extends State<SetWinnerDialog> {
                 onPressed: () => setState(() => _timeA = false),
                 style: !_timeA ? selectedStyle() : unselectedStyle(),
                 child: Column(
-                  children: widget.partida.team2!.map((team) => Text(team.nome!, textAlign: TextAlign.center,)).toList(),
+                  children: widget.partida.team2!.map((team) => Text(
+                    team.nome!,
+                    textAlign: TextAlign.center,
+                    style: !_timeA ? selectedTextStyle() : unselectedTextStyle()
+                  )).toList(),
                 )
               )
             ],
@@ -65,7 +81,7 @@ class _SetWinnerDialogState extends State<SetWinnerDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, [_timeA, _setPoints, widget.partida.team1, widget.partida.team2]), child: const Text('Salvar')),
+        TextButton(onPressed: () => Navigator.pop(context, [_timeA, _setPoints]), child: const Text('Salvar')),
       ],
     );
   }

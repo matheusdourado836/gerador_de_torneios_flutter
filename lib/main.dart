@@ -7,8 +7,12 @@ import 'package:volleyball_tournament_app/pages/history/history_page.dart';
 import 'package:volleyball_tournament_app/pages/home_page.dart';
 import 'package:volleyball_tournament_app/pages/players/players_page.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:volleyball_tournament_app/pages/responsive/responsive_layout.dart';
+import 'package:volleyball_tournament_app/pages/tournament/matches_mobile_page.dart';
 import 'package:volleyball_tournament_app/pages/tournament/matches_page.dart';
+import 'package:volleyball_tournament_app/pages/tournament/tournament_mobile_page.dart';
 import 'package:volleyball_tournament_app/pages/tournament/tournament_page.dart';
+import 'package:volleyball_tournament_app/teste_mobile.dart';
 import 'controller/data_controller.dart';
 import 'firebase_options.dart';
 
@@ -58,8 +62,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/players': (context) => const PlayersPage(),
         '/history': (context) => const HistoryPage(),
-        '/tournament': (context) => const TournamentPage(),
-        '/match': (context) => const MatchesPage(),
+        '/tournament': (context) => const ResponsiveLayout(mobileScreen: TournamentMobilePage(), desktopScreen: TournamentPage()),
+        '/match': (context) => const ResponsiveLayout(mobileScreen: MatchesMobilePage(), desktopScreen: MatchesPage()),
       },
     );
   }
