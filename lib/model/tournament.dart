@@ -8,7 +8,7 @@ class Tournament {
   int? campo;
   int? qtdJogadores;
   TipoPartida? modelo;
-  List<Categoria>? categoria;
+  List<Categoria>? categorias;
   String? qtdJogadoresEmCampo;
   List<Player>? jogadores;
   bool? misto;
@@ -19,7 +19,7 @@ class Tournament {
     this.campo,
     this.qtdJogadores,
     this.modelo,
-    this.categoria,
+    this.categorias,
     this.qtdJogadoresEmCampo,
     this.jogadores,
     this.misto,
@@ -33,13 +33,14 @@ class Tournament {
       'qtdJogadores': qtdJogadores,
       'qtdJogadoresEmCampo': qtdJogadoresEmCampo,
       'modelo': modelo?.valor ?? 0,
-      'categoria': categoria?.map((categoria) => categoria.toJson()),
+      'categorias': categorias?.map((categoria) => categoria.toJson()).toList(),
       'jogadores': jogadores?.map((jogador) => jogador.toJson()).toList(),
       'misto': misto
     };
   }
 
   factory Tournament.fromJson(Map<String, dynamic> json) {
+    print('JSON QUE TA CHEGANDO ${json}');
     return Tournament(
       id: json['id'],
       nomeTorneio: json['nomeTorneio'],
@@ -47,8 +48,8 @@ class Tournament {
       qtdJogadores: json['qtdJogadores'],
       qtdJogadoresEmCampo: json['qtdJogadoresEmCampo'],
       modelo: json['modelo'] != null ? TipoPartida.fromCode(json['modelo']) : null,
-      categoria: json['categoria'] != null
-          ? (json['categoria'] as List).map((categoria) => Categoria.fromJson(categoria)).toList()
+      categorias: json['categorias'] != null
+          ? (json['categorias'] as List).map((categoria) => Categoria.fromJson(categoria)).toList()
           : null,
       jogadores: json['jogadores'] != null
           ? (json['jogadores'] as List).map((jogador) => Player.fromJson(jogador)).toList()

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:volleyball_tournament_app/model/categoria.dart';
 
 class AddCategoriaDialog extends StatefulWidget {
@@ -11,14 +10,12 @@ class AddCategoriaDialog extends StatefulWidget {
 
 class _AddCategoriaDialogState extends State<AddCategoriaDialog> {
   final TextEditingController _nomeController = TextEditingController();
-  final TextEditingController _pontosController = TextEditingController();
-  String _selectedCriterio = '> (maior que)';
+  String _selectedLevel = 'Iniciante';
   final List<String> _options = [
-    '> (maior que)',
-    '>= (maior ou igual à)',
-    '< (menor que)',
-    '<= (menor ou igual à)',
-    '= (igual à)'
+    'Iniciante',
+    'Amador',
+    'Avançado',
+    'Profissional',
   ];
 
   @override
@@ -38,21 +35,13 @@ class _AddCategoriaDialogState extends State<AddCategoriaDialog> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: DropdownButton<String>(
-              value: _selectedCriterio,
+              value: _selectedLevel,
               items: _options.map((option) => DropdownMenuItem<String>(value: option, child: Text(option))).toList(),
               onChanged: (value) {
-                setState(() => _selectedCriterio = value!);
+                setState(() => _selectedLevel = value!);
               }
             ),
           ),
-          TextFormField(
-            controller: _pontosController,
-            keyboardType: const TextInputType.numberWithOptions(),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(
-              hintText: 'Qtd. pontos'
-            ),
-          )
         ],
       ),
       actions: [
@@ -60,8 +49,7 @@ class _AddCategoriaDialogState extends State<AddCategoriaDialog> {
           onPressed: () {
             final Categoria categoria = Categoria(
               nome: _nomeController.text,
-              criterio: _selectedCriterio.split(' ')[0],
-              pontos: int.parse(_pontosController.text)
+              nivelCategoria: _selectedLevel.split(' ')[0],
             );
             Navigator.pop(context, categoria);
           }, 

@@ -20,9 +20,9 @@ class _InitTournamentDialogState extends State<InitTournamentDialog> with Single
   bool _beach = false;
   bool _misto = true;
   final List<Categoria> _categoriasPadrao = [
-    Categoria(nome: 'Tio Paulo', criterio: '<', pontos: 4),
-    Categoria(nome: 'Amador', criterio: '<=', pontos: 6),
-    Categoria(nome: 'Profissional', criterio: '>', pontos: 6),
+    Categoria(nome: 'Tio Paulo', nivelCategoria: 'Iniciante'),
+    Categoria(nome: 'Amador', nivelCategoria: 'Amador'),
+    Categoria(nome: 'Profissional', nivelCategoria: 'Profissional'),
   ];
 
   @override
@@ -226,7 +226,7 @@ class _InitTournamentDialogState extends State<InitTournamentDialog> with Single
                                   Row(
                                     children: [
                                       const Text('Pontos: '),
-                                      Text('${categoria.criterio} ${categoria.pontos}')
+                                      Text('${categoria.nivelCategoria}')
                                     ],
                                   )
                                 ],
@@ -249,7 +249,7 @@ class _InitTournamentDialogState extends State<InitTournamentDialog> with Single
                     nomeTorneio: _nameController.text,
                     campo: _beach ? 1 : 0,
                     modelo: TipoPartida.fromDescription(_selectedModel!),
-                    categoria: _categoriasPadrao,
+                    categorias: _categoriasPadrao,
                     misto: _misto,
                     qtdJogadoresEmCampo: _selectedValue
                   );
@@ -281,9 +281,9 @@ class _InitTournamentDialogMobileState extends State<InitTournamentDialogMobile>
   bool _beach = true;
   bool _misto = true;
   final List<Categoria> _categoriasPadrao = [
-    Categoria(nome: 'Tio Paulo', criterio: '<', pontos: 4),
-    Categoria(nome: 'Amador', criterio: '<=', pontos: 6),
-    Categoria(nome: 'Profissional', criterio: '>', pontos: 6),
+    Categoria(nome: 'Tio Paulo', nivelCategoria: 'Iniciante'),
+    Categoria(nome: 'Amador', nivelCategoria: 'Amador'),
+    Categoria(nome: 'Profissional', nivelCategoria: 'Profissional'),
   ];
 
   @override
@@ -463,7 +463,7 @@ class _InitTournamentDialogMobileState extends State<InitTournamentDialogMobile>
                                     Row(
                                       children: [
                                         const Text('Pontos: '),
-                                        Text('${categoria.criterio} ${categoria.pontos}')
+                                        Text('${categoria.nivelCategoria}')
                                       ],
                                     )
                                   ],
@@ -487,7 +487,7 @@ class _InitTournamentDialogMobileState extends State<InitTournamentDialogMobile>
                     nomeTorneio: _nameController.text,
                     campo: _beach ? 1 : 0,
                     modelo: TipoPartida.fromDescription(_selectedModel!),
-                    categoria: _categoriasPadrao,
+                    categorias: _categoriasPadrao,
                     misto: _misto,
                     qtdJogadoresEmCampo: _selectedValue
                 );

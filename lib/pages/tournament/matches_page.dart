@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:volleyball_tournament_app/controller/data_controller.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
@@ -8,7 +9,8 @@ import 'package:volleyball_tournament_app/pages/tournament/set_winner_dialog.dar
 import '../../model/partida.dart';
 
 class MatchesPage extends StatefulWidget {
-  const MatchesPage({super.key});
+  final String tournamentName;
+  const MatchesPage({super.key, required this.tournamentName});
 
   @override
   State<MatchesPage> createState() => _MatchesPageState();
@@ -24,6 +26,7 @@ class _MatchesPageState extends State<MatchesPage> {
   int playersBySide = 0;
   int qtdRounds = 0;
   int currentRound = 0;
+  List<double> fatorDeAjusteList = [];
 
   void generate2x2game({bool misto = false}) {
     List<Partida> innerPartidas = [];
@@ -126,8 +129,30 @@ class _MatchesPageState extends State<MatchesPage> {
 
   @override
   void initState() {
-    players = dataProvider.tournament!.jogadores ?? [];
-    playersBySide = int.parse(dataProvider.tournament!.qtdJogadoresEmCampo!.split('x')[0]);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      dataProvider.carregarTorneio(widget.tournamentName).whenComplete(() {
+        if(dataProvider.tournament == null) {
+          GoRouter.of(context).go('/');
+          return;
+        }
+        players = dataProvider.tournament!.jogadores ?? [];
+        playersBySide = int.parse(dataProvider.tournament!.qtdJogadoresEmCampo!.split('x')[0]);
+        dataProvider.tournament!.categorias!.sort((a, b) {
+          if(a.nivelCategoria! == 'Iniciante') {
+            return 0;
+          }else if(a.nivelCategoria == 'Amador') {
+            return 0;
+          }else {
+            return 1;
+          }
+        });
+        switch(dataProvider.tournament!.categorias!.length) {
+          case 2: return setState(() => fatorDeAjusteList = [0.5, 1]);
+          case 3: return setState(() => fatorDeAjusteList = [0.3, 0.4, 0.75]);
+          case 4: return setState(() => fatorDeAjusteList = [0.3, 0.4, 0.7, 0.9]);
+        }
+      });
+    });
     super.initState();
   }
 

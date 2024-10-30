@@ -12,6 +12,7 @@ import 'package:volleyball_tournament_app/pages/tournament/matches_mobile_page.d
 import 'package:volleyball_tournament_app/pages/tournament/matches_page.dart';
 import 'package:volleyball_tournament_app/pages/tournament/tournament_mobile_page.dart';
 import 'package:volleyball_tournament_app/pages/tournament/tournament_page.dart';
+import 'package:volleyball_tournament_app/routes/go_router.dart';
 import 'package:volleyball_tournament_app/teste_mobile.dart';
 import 'controller/data_controller.dart';
 import 'firebase_options.dart';
@@ -37,7 +38,10 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
+      routeInformationParser: AppRouter.router.routeInformationParser,
+      routeInformationProvider: AppRouter.router.routeInformationProvider,
+      routerDelegate: AppRouter.router.routerDelegate,
       title: 'UTAC Torneios APP',
       scrollBehavior: MyCustomScrollBehavior(),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -50,6 +54,9 @@ class MyApp extends StatelessWidget {
           tertiary: Colors.white
         ),
         useMaterial3: true,
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: Color.fromRGBO(42, 35, 42, 1)
+        ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color.fromRGBO(42, 35, 42, 1),
@@ -58,13 +65,6 @@ class MyApp extends StatelessWidget {
           )
         )
       ),
-      home: const HomePage(),
-      routes: {
-        '/players': (context) => const PlayersPage(),
-        '/history': (context) => const HistoryPage(),
-        '/tournament': (context) => const ResponsiveLayout(mobileScreen: TournamentMobilePage(), desktopScreen: TournamentPage()),
-        '/match': (context) => const ResponsiveLayout(mobileScreen: MatchesMobilePage(), desktopScreen: MatchesPage()),
-      },
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:volleyball_tournament_app/model/categoria.dart';
+import 'package:volleyball_tournament_app/model/tournament.dart';
 import 'package:volleyball_tournament_app/pages/tournament/edit_players_dialog.dart';
 import 'package:volleyball_tournament_app/pages/tournament/set_winner_dialog.dart';
 import 'package:volleyball_tournament_app/pages/tournament/set_winner_mobile_dialog.dart';
@@ -25,6 +27,7 @@ class _TesteMobileState extends State<TesteMobile> {
   int playersBySide = 0;
   int qtdRounds = 0;
   int currentRound = 0;
+  List<double> fatorDeAjusteList = [];
 
   void generate2x2game({bool misto = false}) {
     List<Partida> innerPartidas = [];
@@ -150,7 +153,59 @@ class _TesteMobileState extends State<TesteMobile> {
     //     team2: [players[8], players[5]],
     //   ),
     // ],);
+    dataProvider.tournament = Tournament(
+      categorias: [
+        Categoria(
+          nome: 'Amador',
+          nivelCategoria: 'Iniciante',
+          players: []
+        ),
+        Categoria(
+            nome: 'Profissional',
+            nivelCategoria: 'Profissional',
+          players: []
+        ),
+        Categoria(
+            nome: 'Mediano',
+            nivelCategoria: 'Amador',
+          players: []
+        ),
+      ],
+      jogadores: players
+    );
+    dataProvider.tournament!.categorias!.sort((a, b) {
+      if(a.nivelCategoria! == 'Iniciante') {
+        return 0;
+      }else if(a.nivelCategoria == 'Amador') {
+        return 0;
+      }else {
+        return 1;
+      }
+    });
+    switch(dataProvider.tournament!.categorias!.length) {
+      case 2: return setState(() => fatorDeAjusteList = [0.5, 1]);
+      case 3: return setState(() => fatorDeAjusteList = [0.3, 0.4, 0.8]);
+      case 4: return setState(() => fatorDeAjusteList = [0.3, 0.4, 0.7, 0.9]);
+    }
     super.initState();
+  }
+
+  void updatePlayerRank(Player player) {
+    for(double fatorDeAjuste in fatorDeAjusteList) {
+      final playerMedia = (player.pontos ?? 0) / (player.partidasJogadas ?? 0);
+      if(playerMedia >= fatorDeAjuste) {
+        final index = fatorDeAjusteList.indexOf(fatorDeAjuste);
+        dataProvider.tournament!.categorias![index].players ??= [];
+        dataProvider.tournament!.categorias![index].players!.add(player);
+        final categoria = dataProvider.tournament!.categorias![index];
+        final List<Categoria> otherCategorias = dataProvider.tournament!.categorias!.where((c) => c.nome != categoria.nome).toList();
+        for(Categoria categoria in otherCategorias) {
+          if(categoria.players?.contains(player) ?? false) {
+            categoria.players!.remove(player);
+          }
+        }
+      }
+    }
   }
 
   @override
@@ -261,10 +316,18 @@ class _TesteMobileState extends State<TesteMobile> {
                                                   if(res[0]) {
                                                     for(var player in team1) {
                                                       player.pontos = (player.pontos ?? 0) + 1;
+                                                      updatePlayerRank(player);
+                                                    }
+                                                    for(var player in team2) {
+                                                      updatePlayerRank(player);
                                                     }
                                                   }else {
+                                                    for(var player in team1) {
+                                                      updatePlayerRank(player);
+                                                    }
                                                     for(var player in team2) {
                                                       player.pontos = (player.pontos ?? 0) + 1;
+                                                      updatePlayerRank(player);
                                                     }
                                                   }
                                                 }
@@ -326,6 +389,44 @@ class _TesteMobileState extends State<TesteMobile> {
                               )
                               ).toList(),
                             ),
+                            const SizedBox(height: 24),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text('Categorias', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for(var i = 0; i < dataProvider.tournament!.categorias!.length; i++)
+                                      Column(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(dataProvider.tournament!.categorias![i].nome!, style: const TextStyle(fontWeight: FontWeight.bold),),
+                                          const SizedBox(height: 16),
+                                          SizedBox(
+                                            width: 100,
+                                            child: ListView.builder(
+                                              shrinkWrap: true,
+                                              physics: const NeverScrollableScrollPhysics(),
+                                              itemCount: dataProvider.tournament?.categorias?[i].players?.length ?? 0,
+                                              itemBuilder: (context, index) {
+                                                final player = dataProvider.tournament?.categorias?[i].players![index];
+                                                //final player = Player(nome: 'MatheusComBumBum');
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(bottom: 16.0),
+                                                  child: Text(player!.nome!, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,),
+                                                );
+                                              },
+                                            ),
+                                          )
+                                        ],
+                                      )
+                                  ],
+                                )
+                              ],
+                            )
                           ],
                         ),
                       ),
@@ -336,6 +437,14 @@ class _TesteMobileState extends State<TesteMobile> {
             }
           );
         },
+      ),
+      floatingActionButton: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+          fixedSize: const Size(150, 30)
+        ),
+          onPressed: () {},
+          child: const Text('Próxima fase')
       ),
     );
   }

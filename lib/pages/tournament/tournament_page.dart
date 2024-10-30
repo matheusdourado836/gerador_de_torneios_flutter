@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:volleyball_tournament_app/controller/data_controller.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
@@ -194,7 +195,8 @@ class _TournamentPageState extends State<TournamentPage> {
                             if(readyPlayers.isNotEmpty) {
                               _tournament!.jogadores = readyPlayers;
                               _dataController.tournament = _tournament;
-                              Navigator.pushNamedAndRemoveUntil(context, '/match', (route) => false);
+                              _dataController.salvarTorneio(tournament: _dataController.tournament!);
+                              GoRouter.of(context).go('/tournament/${_tournament!.nomeTorneio!}/match');
                             }
                           },
                           label: const Text('Iniciar torneio'),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-
 import '../../controller/data_controller.dart';
 import '../../model/player.dart';
 import '../../model/tournament.dart';
@@ -184,7 +184,8 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
                                 if(readyPlayers.isNotEmpty) {
                                   _tournament!.jogadores = readyPlayers;
                                   _dataController.tournament = _tournament;
-                                  Navigator.pushNamedAndRemoveUntil(context, '/match', (route) => false);
+                                  _dataController.salvarTorneio(tournament: _tournament!);
+                                  GoRouter.of(context).go('/tournament/${_tournament!.nomeTorneio!}/match');
                                 }
                               },
                               label: const Text('Iniciar torneio'),

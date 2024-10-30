@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
 import 'package:volleyball_tournament_app/service/firebase_service.dart';
 import '../model/tournament.dart';
@@ -29,5 +33,35 @@ class DataController extends ChangeNotifier {
 
   Future<void> updatePlayerData(Map<String, dynamic> info, String id) async {
     return await _service.updatePlayerData(info, id);
+  }
+
+  Future<void> salvarTorneio({required Tournament tournament}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final torneiosSalvos = prefs.getString('torneios') ?? '{}';
+      final torneiosMap = json.decode(torneiosSalvos) as Map<String, dynamic>;
+
+      torneiosMap[tournament.nomeTorneio!] = tournament.toJson();
+      prefs.setString('torneios', json.encode(torneiosMap));
+    }catch(e, stack) {
+      log('ERRO AO SALVAR TORNEIO $e', stackTrace: stack);
+    }
+  }
+
+  Future<void> carregarTorneio(String nomeDoTorneio) async {
+    try {
+      loading = true;
+      notifyListeners();
+      final prefs = await SharedPreferences.getInstance();
+      final torneiosSalvos = prefs.getString('torneios') ?? '{}';
+      final torneiosMap = json.decode(torneiosSalvos) as Map<String, dynamic>;
+
+      loading = false;
+      tournament = Tournament.fromJson(torneiosMap[nomeDoTorneio]);
+      players = tournament?.jogadores ?? [];
+      notifyListeners();
+    }catch(e, stack) {
+      log('ERRO AO CARREGAR TORNEIO $e', stackTrace: stack);
+    }
   }
 }
