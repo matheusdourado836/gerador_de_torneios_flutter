@@ -333,92 +333,89 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                       SizedBox(
                         width: constraints.maxWidth,
                         height: constraints.maxHeight,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
-                          child: Column(
-                            children: [
-                              const Divider(),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  SizedBox(
-                                      width: 140,
-                                      child: Text('Nome', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16))
-                                  ),
-                                  Text('Jogos', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16), textAlign: TextAlign.center,),
-                                  Text('Pontos', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16)),
-                                  Text('Media', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16)),
-                                ],
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: players.map((player) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      SizedBox(
-                                          width: 120,
-                                          child: Text(player.nome!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),)
-                                      ),
-                                      Text(player.partidasJogadas!.toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
-                                      Text('${player.pontos}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),),
-                                      Padding(
-                                        padding: const EdgeInsets.only(right: 10.0),
-                                        child: Text(((player.pontos ?? 0) / (player.partidasJogadas ?? 0)).toStringAsFixed(2), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                                ).toList(),
-                              ),
-                              const SizedBox(height: 24),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text('Categorias', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      for(var i = 0; i < dataProvider.tournament!.categorias!.length; i++)
-                                        Column(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Column(
-                                              children: [
-                                                Text(dataProvider.tournament!.categorias![i].nome!, style: const TextStyle(fontWeight: FontWeight.bold),),
-                                                if(i == 0)
-                                                  Text('media < ${fatorDeAjusteList[i]}', style: const TextStyle(fontSize: 10))
-                                                else
-                                                  Text('media >= ${fatorDeAjusteList[i]}', style: const TextStyle(fontSize: 10))
-                                              ],
-                                            ),
-                                            const SizedBox(height: 16),
-                                            SizedBox(
-                                              width: 100,
-                                              child: ListView.builder(
-                                                shrinkWrap: true,
-                                                physics: const NeverScrollableScrollPhysics(),
-                                                itemCount: dataProvider.tournament?.categorias?[i].players?.length ?? 0,
-                                                itemBuilder: (context, index) {
-                                                  final player = dataProvider.tournament?.categorias?[i].players![index];
-                                                  return Padding(
-                                                    padding: const EdgeInsets.only(bottom: 16.0),
-                                                    child: Text(player!.nome!, textAlign: TextAlign.center,),
-                                                  );
-                                                },
-                                              ),
-                                            )
-                                          ],
-                                        )
-                                    ],
-                                  )
-                                ],
+                        child: Column(
+                          children: [
+                            const Divider(),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                SizedBox(
+                                    width: 140,
+                                    child: Text('Nome', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16))
+                                ),
+                                Text('Jogos', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16), textAlign: TextAlign.center,),
+                                Text('Pontos', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16)),
+                                Text('Media', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16)),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: players.map((player) => Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    SizedBox(
+                                        width: 120,
+                                        child: Text(player.nome!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),)
+                                    ),
+                                    Text(player.partidasJogadas!.toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
+                                    Text('${player.pontos}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),),
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 10.0),
+                                      child: Text(((player.pontos ?? 0) / (player.partidasJogadas ?? 0)).toStringAsFixed(2), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
+                                    ),
+                                  ],
+                                ),
                               )
-                            ],
-                          ),
+                              ).toList(),
+                            ),
+                            const SizedBox(height: 24),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text('Categorias', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for(var i = 0; i < dataProvider.tournament!.categorias!.length; i++)
+                                      Column(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Column(
+                                            children: [
+                                              Text(dataProvider.tournament!.categorias![i].nome!, style: const TextStyle(fontWeight: FontWeight.bold),),
+                                              if(i == 0)
+                                                Text('media < ${fatorDeAjusteList[i]}', style: const TextStyle(fontSize: 10))
+                                              else
+                                                Text('media >= ${fatorDeAjusteList[i]}', style: const TextStyle(fontSize: 10))
+                                            ],
+                                          ),
+                                          const SizedBox(height: 16),
+                                          SizedBox(
+                                            width: 100,
+                                            child: ListView.builder(
+                                              shrinkWrap: true,
+                                              physics: const NeverScrollableScrollPhysics(),
+                                              itemCount: dataProvider.tournament?.categorias?[i].players?.length ?? 0,
+                                              itemBuilder: (context, index) {
+                                                final player = dataProvider.tournament?.categorias?[i].players![index];
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(bottom: 16.0),
+                                                  child: Text(player!.nome!, textAlign: TextAlign.center,),
+                                                );
+                                              },
+                                            ),
+                                          )
+                                        ],
+                                      )
+                                  ],
+                                )
+                              ],
+                            )
+                          ],
                         ),
                       ),
                       Column(
