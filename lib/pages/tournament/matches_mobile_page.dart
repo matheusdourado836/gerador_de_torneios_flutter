@@ -24,6 +24,7 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
   List<List<Player>> listaDeDuplas = [];
   List<Partida> partidas = [];
   List<Partida> partidasHistory = [];
+  Set<String> duplasUsadas = {};
   int playersBySide = 0;
   int qtdRounds = 0;
   int currentRound = 0;
@@ -42,8 +43,6 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
         if (time1.toSet().intersection(time2.toSet()).isEmpty) {
           String chaveTime1 = time1.join(',');
           String chaveTime2 = time2.join(',');
-
-          Set<String> duplasUsadas = {};
 
           if (!duplasUsadas.contains(chaveTime1) && !duplasUsadas.contains(chaveTime2)) {
             innerPartidas.add(Partida(team1: listaDeDuplas[i], team2: listaDeDuplas[j]));
@@ -185,7 +184,10 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
         centerTitle: true,
         title: const Text('Fase classificatória'),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.settings))
+          IconButton(
+            onPressed: () => context.go(context.namedLocation('settings', pathParameters: {"nomeDoTorneio": widget.tournamentName})),
+            icon: const Icon(Icons.settings)
+          )
         ],
       ),
       body: Consumer<DataController>(
@@ -230,7 +232,16 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text('Rodada ${currentRound + 1}', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
+                            Row(
+                              children: [
+                                const Spacer(),
+                                Text('Rodada ${currentRound + 1}', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 24.0, right: 8),
+                                  child: Text('${partidas.where((p) => p.finished == true).length} jogos finalizados'),
+                                )
+                              ],
+                            ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -294,7 +305,7 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                                                     if(res[1]) {
                                                       if(res[0]) {
                                                         for(var player in team1) {
-                                                          player.pontos = (player.pontos ?? 0) + 1;
+                                                          player.pontosAtuais = (player.pontosAtuais ?? 0) + 1;
                                                           updatePlayerRank(player);
                                                         }
                                                         for(var player in team2) {
@@ -305,7 +316,7 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                                                           updatePlayerRank(player);
                                                         }
                                                         for(var player in team2) {
-                                                          player.pontos = (player.pontos ?? 0) + 1;
+                                                          player.pontosAtuais = (player.pontosAtuais ?? 0) + 1;
                                                           updatePlayerRank(player);
                                                         }
                                                       }
@@ -320,7 +331,7 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                                               fixedSize: const Size(118, 30),
                                               backgroundColor: partidas[index].vencedor != null ? Colors.blue : const Color.fromRGBO(42, 35, 42, 1)
                                           ),
-                                          child: partidas[index].vencedor != null ? const Text('EDITAR') : const Text('FINALIZAR')
+                                          child: partidas[index].vencedor != null ? const Text('EDITAR') : const Text('MARCAR RESULTADO')
                                         ),
                                       ),
                                     ],
@@ -330,9 +341,8 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                             ),
                           ],
                         ),
-                      SizedBox(
-                        width: constraints.maxWidth,
-                        height: constraints.maxHeight,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
                         child: Column(
                           children: [
                             const Divider(),
@@ -363,7 +373,7 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                                     Text('${player.pontos}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),),
                                     Padding(
                                       padding: const EdgeInsets.only(right: 10.0),
-                                      child: Text(((player.pontos ?? 0) / (player.partidasJogadas ?? 0)).toStringAsFixed(2), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
+                                      child: Text(((player.pontosAtuais ?? 0) / (player.partidasJogadas ?? 0)).toStringAsFixed(2), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
                                     ),
                                   ],
                                 ),

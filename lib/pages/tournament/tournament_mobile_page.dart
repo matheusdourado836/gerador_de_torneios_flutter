@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../controller/data_controller.dart';
+import '../../helpers/remover_acentos.dart';
 import '../../model/player.dart';
 import '../../model/tournament.dart';
 import '../players/player_dialog_actions.dart';
@@ -18,7 +19,6 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
   late final DataController _dataController;
   ValueNotifier<bool> updateList = ValueNotifier(false);
   Tournament? _tournament;
-  List<Player> playersList = [];
   List<Player> readyPlayers = [];
   int addedPlayers = 0;
 
@@ -31,11 +31,9 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
           _dataController = Provider.of<DataController>(context, listen: false);
           if(_dataController.players.isEmpty) {
             await _dataController.getPlayers();
+            _dataController.players.sort((a, b) => a.nome!.compareTo(b.nome!));
           }
-          setState(() {
-            _tournament = res;
-            playersList = _dataController.players;
-          });
+          setState(() => _tournament = res);
         }else if(!res) {
           Navigator.pop(context);
         }
@@ -124,41 +122,78 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
                   );
                 }
 
-                return ListView.separated(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100),
-                  itemCount: playersList.length,
-                  separatorBuilder: (context, index) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final player = playersList[index];
-
-                    return ListTile(
-                      title: Text(player.nome ?? ''),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                      subtitle: Row(
-                        children: [
-                          Text('Vitórias ${player.vitorias}', style: const TextStyle(color: Colors.green, fontSize: 12),),
-                          Text('Derrotas ${player.derrotas}', style: const TextStyle(color: Colors.red, fontSize: 12)),
-                        ],
-                      ),
-                      trailing: Transform.scale(
-                        scale: .7,
-                        child: ChoiceChip(
-                          selected: readyPlayers.contains(player),
-                          onSelected: (value) {
-                            if(!readyPlayers.contains(player)) {
-                              setState(() {
-                                addedPlayers++;
-                                readyPlayers.add(player);
-                              });
-                            }
-                          },
-                          label: const Text('CHECK-IN', style: TextStyle(color: Colors.white)),
-                          backgroundColor: const Color.fromRGBO(42, 35, 42, 1),
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: TextField(
+                        onChanged: (newValue) {
+                          if(newValue.isEmpty) {
+                            setState(() => value.players.sort((a, b) => a.nome!.compareTo(b.nome!)));
+                          }else {
+                            final querySemAcento = removerAcentos(newValue.toLowerCase());
+                            setState(() {
+                              value.players.sort(
+                                (a, b) => a.nome!.toLowerCase().startsWith(querySemAcento)
+                                  || a.nome!.toLowerCase().contains(querySemAcento) ? 0 : 1
+                              );
+                            });
+                          }
+                        },
+                        decoration: InputDecoration(
+                            hintText: 'Pesquisar jogador...',
+                            enabledBorder: OutlineInputBorder(
+                                borderSide: const BorderSide(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8)
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                                borderSide: const BorderSide(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8)
+                            ),
+                            prefixIcon: const Icon(Icons.search)
                         ),
                       ),
-                    );
-                  },
+                    ),
+                    Expanded(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100),
+                        itemCount: value.players.length,
+                        separatorBuilder: (context, index) => const Divider(),
+                        itemBuilder: (context, index) {
+                          final player = value.players[index];
+
+                          return ListTile(
+                            title: Text(player.nome ?? ''),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                            subtitle: Row(
+                              children: [
+                                Text('Vitórias ${player.vitorias}', style: const TextStyle(color: Colors.green, fontSize: 12),),
+                                const SizedBox(width: 8,),
+                                Text('Derrotas ${player.derrotas}', style: const TextStyle(color: Colors.red, fontSize: 12)),
+                              ],
+                            ),
+                            trailing: Transform.scale(
+                              scale: .7,
+                              child: ChoiceChip(
+                                selected: readyPlayers.contains(player),
+                                onSelected: (value) {
+                                  if(!readyPlayers.contains(player)) {
+                                    setState(() {
+                                      addedPlayers++;
+                                      readyPlayers.add(player);
+                                    });
+                                  }
+                                },
+                                label: const Text('CHECK-IN', style: TextStyle(color: Colors.white)),
+                                backgroundColor: const Color.fromRGBO(42, 35, 42, 1),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 );
               },
       ),
@@ -170,6 +205,9 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
               content: ValueListenableBuilder(
                   valueListenable: updateList,
                   builder: (context, value, _) {
+                    final homensList = readyPlayers.where((player) => player.sex == 0).length;
+                    final mulheresList = readyPlayers.where((player) => player.sex == 1).length;
+
                     return SingleChildScrollView(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -178,7 +216,10 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: readyPlayers.map((player) => _playerRow(player)).toList(),
                           ),
-                          const SizedBox(height: 24,),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                            child: Text('$homensList Homens | $mulheresList Mulheres'),
+                          ),
                           ElevatedButton.icon(
                               onPressed: () {
                                 if(readyPlayers.isNotEmpty) {

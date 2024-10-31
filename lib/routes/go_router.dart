@@ -1,5 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:volleyball_tournament_app/pages/home_page.dart';
+import 'package:volleyball_tournament_app/pages/tournament/knockout_stage/knockout_stage_page.dart';
+import 'package:volleyball_tournament_app/pages/tournament/settings/settings_page.dart';
 
 import '../pages/history/history_page.dart';
 import '../pages/players/players_page.dart';
@@ -41,6 +43,23 @@ class AppRouter {
             desktopScreen: MatchesPage(tournamentName: tournamentName),
           );
         },
+        routes: [
+          GoRoute(
+            name: 'settings',
+            path: 'settings',
+            builder: (context, state) {
+              return const SettingsPage();
+            }
+          ),
+          GoRoute(
+              name: 'fase2',
+              path: 'fase2',
+              builder: (context, state) {
+                final tournamentName = state.pathParameters['nomeDoTorneio'] ?? '';
+                return KnockoutStagePage(nomeTorneio: tournamentName);
+              }
+          ),
+        ]
       ),
     ],
   );

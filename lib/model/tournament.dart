@@ -40,7 +40,6 @@ class Tournament {
   }
 
   factory Tournament.fromJson(Map<String, dynamic> json) {
-    print('JSON QUE TA CHEGANDO ${json}');
     return Tournament(
       id: json['id'],
       nomeTorneio: json['nomeTorneio'],

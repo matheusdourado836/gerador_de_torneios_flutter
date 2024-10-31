@@ -64,4 +64,16 @@ class DataController extends ChangeNotifier {
       log('ERRO AO CARREGAR TORNEIO $e', stackTrace: stack);
     }
   }
+
+  Future<void> cancelarTorneio({required String nomeDoTorneio}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final torneiosSalvos = prefs.getString('torneios') ?? '{}';
+    final torneiosMap = json.decode(torneiosSalvos) as Map<String, dynamic>;
+    if(torneiosMap[nomeDoTorneio].isNotEmpty) {
+      torneiosMap[nomeDoTorneio] = '';
+      prefs.setString('torneios', jsonEncode(torneiosMap));
+    }
+
+    return;
+  }
 }
