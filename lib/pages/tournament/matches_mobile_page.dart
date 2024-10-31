@@ -115,7 +115,7 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
 
   void updatePlayerRank(Player player) {
     for(double fatorDeAjuste in fatorDeAjusteList.reversed) {
-      final playerMedia = (player.pontos ?? 0) / (player.partidasJogadas ?? 0);
+      final playerMedia = (player.pontosAtuais ?? 0) / (player.partidasJogadas ?? 0);
       if(fatorDeAjusteList.indexOf(fatorDeAjuste) == 0) {
         if(!(dataProvider.tournament!.categorias![0].players?.contains(player) ?? false)) {
           dataProvider.tournament!.categorias![0].players ??= [];
