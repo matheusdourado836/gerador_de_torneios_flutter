@@ -19,6 +19,18 @@ class AppRouter {
       GoRoute(
         path: '/',
         builder: (context, state) => const HomePage(),
+        routes: [
+          GoRoute(
+              path: '/tournament/:nomeDoTorneio/match',
+              builder: (context, state) {
+                final tournamentName = state.pathParameters['nomeDoTorneio'] ?? '';
+                return ResponsiveLayout(
+                  mobileScreen: MatchesMobilePage(tournamentName: tournamentName),
+                  desktopScreen: MatchesPage(tournamentName: tournamentName),
+                );
+              },
+          ),
+        ]
       ),
       GoRoute(
         path: '/players',

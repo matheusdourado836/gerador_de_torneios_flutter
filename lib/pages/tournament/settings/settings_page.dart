@@ -42,6 +42,18 @@ class SettingsPage extends StatelessWidget {
           ListTile(
             onTap: () => showDialog(
               context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Seu código', textAlign: TextAlign.center,),
+                content: Text(dataProvider.tournament!.codigo!, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 20),),
+              )
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            title: const Text('Ver código do torneio'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 18,),
+          ),
+          ListTile(
+            onTap: () => showDialog(
+              context: context,
               builder: (ctx) => const _EncerrarTorneioDialog()
             ).then((res) {
               if(res ?? false) {

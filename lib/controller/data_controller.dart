@@ -67,6 +67,10 @@ class DataController extends ChangeNotifier {
     return pass == userPass;
   }
 
+  Future<String?> getTorneioByCode({required String code}) async {
+    return await _service.getTorneioByCode(code: code);
+  }
+
   Future<void> carregarTorneio(String nomeDoTorneio) async {
     try {
       loading = true;

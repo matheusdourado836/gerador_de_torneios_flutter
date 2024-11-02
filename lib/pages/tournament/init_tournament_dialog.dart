@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:volleyball_tournament_app/model/categoria.dart';
 import 'package:volleyball_tournament_app/model/enums.dart';
@@ -304,6 +306,11 @@ class _InitTournamentDialogMobileState extends State<InitTournamentDialogMobile>
     Categoria(nome: 'Profissional', nivelCategoria: 'Profissional'),
   ];
 
+  String gerarCodigoTorneio() {
+    final random = Random();
+    return List.generate(4, (_) => random.nextInt(10)).join();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -519,6 +526,7 @@ class _InitTournamentDialogMobileState extends State<InitTournamentDialogMobile>
                   final Tournament tournament = Tournament(
                       nomeTorneio: _nameController.text,
                       senha: _passController.text,
+                      codigo: gerarCodigoTorneio(),
                       campo: _beach ? 1 : 0,
                       modelo: TipoPartida.fromDescription(_selectedModel!),
                       categorias: _categoriasPadrao,

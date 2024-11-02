@@ -6,6 +6,7 @@ import 'enums.dart';
 class Tournament {
   String? id;
   String? nomeTorneio;
+  String? codigo;
   String? senha;
   int? campo;
   int? qtdJogadores;
@@ -19,6 +20,7 @@ class Tournament {
   Tournament({
     this.id,
     this.nomeTorneio,
+    this.codigo,
     this.senha,
     this.campo,
     this.qtdJogadores,
@@ -34,6 +36,7 @@ class Tournament {
     return {
       'id': id,
       'nomeTorneio': nomeTorneio,
+      'codigo': codigo,
       'senha': senha,
       'modalidade': campo,
       'qtdJogadores': qtdJogadores,
@@ -50,6 +53,7 @@ class Tournament {
     return Tournament(
       id: json['id'],
       nomeTorneio: json['nomeTorneio'],
+      codigo: json['codigo'],
       senha: json['senha'],
       campo: json['modalidade'],
       qtdJogadores: json['qtdJogadores'],

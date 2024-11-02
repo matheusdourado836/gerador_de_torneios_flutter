@@ -50,6 +50,20 @@ class FirebaseService {
   Future<void> updateTorneioData(Map<String, dynamic> info, String id) async {
     return await _database.collection('torneios').doc(id).update(info);
   }
+  
+  Future<String?> getTorneioByCode({required String code}) async {
+    final querySnapshot = await _database
+        .collection('torneios')
+        .where('codigo', isEqualTo: code)
+        .get();
+
+    if(querySnapshot.docs.isNotEmpty) {
+      final torneio = querySnapshot.docs.first.data();
+      return torneio["nomeTorneio"];
+    }
+
+    return null;
+  }
 
   Future<String?> checkPass({required String nomeDoTorneio}) async {
     final querySnapshot = await _database
