@@ -1,27 +1,32 @@
 import 'package:volleyball_tournament_app/model/categoria.dart';
+import 'package:volleyball_tournament_app/model/partida.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
 import 'enums.dart';
 
 class Tournament {
   String? id;
   String? nomeTorneio;
+  String? senha;
   int? campo;
   int? qtdJogadores;
   TipoPartida? modelo;
   List<Categoria>? categorias;
   String? qtdJogadoresEmCampo;
   List<Player>? jogadores;
+  List<Partida>? partidas;
   bool? misto;
 
   Tournament({
     this.id,
     this.nomeTorneio,
+    this.senha,
     this.campo,
     this.qtdJogadores,
     this.modelo,
     this.categorias,
     this.qtdJogadoresEmCampo,
     this.jogadores,
+    this.partidas,
     this.misto,
   });
 
@@ -29,12 +34,14 @@ class Tournament {
     return {
       'id': id,
       'nomeTorneio': nomeTorneio,
+      'senha': senha,
       'modalidade': campo,
       'qtdJogadores': qtdJogadores,
       'qtdJogadoresEmCampo': qtdJogadoresEmCampo,
       'modelo': modelo?.valor ?? 0,
       'categorias': categorias?.map((categoria) => categoria.toJson()).toList(),
       'jogadores': jogadores?.map((jogador) => jogador.toJson()).toList(),
+      'partidas': partidas?.map((partida) => partida.toJson()).toList(),
       'misto': misto
     };
   }
@@ -43,6 +50,7 @@ class Tournament {
     return Tournament(
       id: json['id'],
       nomeTorneio: json['nomeTorneio'],
+      senha: json['senha'],
       campo: json['modalidade'],
       qtdJogadores: json['qtdJogadores'],
       qtdJogadoresEmCampo: json['qtdJogadoresEmCampo'],
@@ -52,6 +60,9 @@ class Tournament {
           : null,
       jogadores: json['jogadores'] != null
           ? (json['jogadores'] as List).map((jogador) => Player.fromJson(jogador)).toList()
+          : null,
+        partidas: json['partidas'] != null
+          ? (json['partidas'] as List).map((partida) => Partida.fromJson(partida)).toList()
           : null,
       misto: json['misto']
     );

@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:volleyball_tournament_app/pages/home_page.dart';
+import 'package:volleyball_tournament_app/pages/players/players_page_mobile.dart';
 import 'package:volleyball_tournament_app/pages/tournament/knockout_stage/knockout_stage_page.dart';
 import 'package:volleyball_tournament_app/pages/tournament/settings/settings_page.dart';
 
@@ -21,7 +22,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/players',
-        builder: (context, state) => const PlayersPage(),
+        builder: (context, state) => const ResponsiveLayout(mobileScreen: PlayersPageMobile(), desktopScreen: PlayersPage()),
       ),
       GoRoute(
         path: '/history',

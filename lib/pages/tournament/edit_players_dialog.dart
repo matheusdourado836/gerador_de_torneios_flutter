@@ -37,14 +37,14 @@ class _EditPlayersDialogState extends State<EditPlayersDialog> {
     // Filtrar jogadores disponíveis e adicionar o jogador atual, evitando duplicatas
     availablePlayers1 = dataProvider.tournament!.jogadores!
         .where((player) =>
-    (widget.team.where((p) => p.nome == player.nome).isEmpty && widget.otherTeam.where((p) => p.nome == player.nome).isEmpty))
+    (widget.otherTeam.where((p) => p.nome == player.nome).isEmpty))
         .toList();
     availablePlayers2 = dataProvider.tournament!.jogadores!
         .where((player) =>
     (widget.team.where((p) => p.nome == player.nome).isEmpty && widget.otherTeam.where((p) => p.nome == player.nome).isEmpty))
         .toList();
-    availablePlayers1.add(_firstPlayer);
-    availablePlayers2.add(_secondPlayer);
+    // availablePlayers1.add(_firstPlayer);
+    // availablePlayers2.add(_secondPlayer);
   }
 
   @override
@@ -55,39 +55,54 @@ class _EditPlayersDialogState extends State<EditPlayersDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DropdownButton<String>(
-            value: _firstPlayerName,
-            items: availablePlayers1
-                .where((p) => p.nome != _secondPlayer.nome)
-                .map((player) => DropdownMenuItem<String>(
-              value: player.nome,
-              child: Text(player.nome!),
-            ))
-                .toList(),
-            onChanged: (value) {
-              setState(() {
-                _firstPlayer = availablePlayers1.firstWhere((p) => p.nome == value);
-                _firstPlayerName = value!;
-              });
-            },
-          ),
-          const SizedBox(height: 24),
-          DropdownButton<String>(
-            value: _secondPlayerName,
-            items: availablePlayers2
-                .where((p) => p.nome != _firstPlayer.nome)
-                .map((player) => DropdownMenuItem<String>(
-              value: player.nome,
-              child: Text(player.nome!),
-            ))
-                .toList(),
-            onChanged: (value) {
-              setState(() {
-                _secondPlayer = availablePlayers2.firstWhere((p) => p.nome == value);
-                _secondPlayerName = value!;
-              });
-            },
-          ),
+          for(var i = 0; i < widget.team.length; i++)
+            DropdownButton<String>(
+              value: widget.team[i].nome,
+              items: availablePlayers1.map((player) => DropdownMenuItem<String>(
+                value: player.nome,
+                child: Text(player.nome!),
+              )).toList(),
+              onChanged: (value) {
+                widget.team[i].nome = value;
+                setState(() {
+                  
+                });
+                print('O JOGADOR ${widget.team[i].nome} AGORA É $value');
+              },
+            ),
+          // DropdownButton<String>(
+          //   value: _firstPlayerName,
+          //   items: availablePlayers1
+          //       .where((p) => p.nome != _secondPlayer.nome)
+          //       .map((player) => DropdownMenuItem<String>(
+          //     value: player.nome,
+          //     child: Text(player.nome!),
+          //   ))
+          //       .toList(),
+          //   onChanged: (value) {
+          //     setState(() {
+          //       _firstPlayer = availablePlayers1.firstWhere((p) => p.nome == value);
+          //       _firstPlayerName = value!;
+          //     });
+          //   },
+          // ),
+          // const SizedBox(height: 24),
+          // DropdownButton<String>(
+          //   value: _secondPlayerName,
+          //   items: availablePlayers2
+          //       .where((p) => p.nome != _firstPlayer.nome)
+          //       .map((player) => DropdownMenuItem<String>(
+          //     value: player.nome,
+          //     child: Text(player.nome!),
+          //   ))
+          //       .toList(),
+          //   onChanged: (value) {
+          //     setState(() {
+          //       _secondPlayer = availablePlayers2.firstWhere((p) => p.nome == value);
+          //       _secondPlayerName = value!;
+          //     });
+          //   },
+          // ),
         ],
       ),
       actions: [

@@ -3,17 +3,8 @@ import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:volleyball_tournament_app/pages/history/history_page.dart';
-import 'package:volleyball_tournament_app/pages/home_page.dart';
-import 'package:volleyball_tournament_app/pages/players/players_page.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:volleyball_tournament_app/pages/responsive/responsive_layout.dart';
-import 'package:volleyball_tournament_app/pages/tournament/matches_mobile_page.dart';
-import 'package:volleyball_tournament_app/pages/tournament/matches_page.dart';
-import 'package:volleyball_tournament_app/pages/tournament/tournament_mobile_page.dart';
-import 'package:volleyball_tournament_app/pages/tournament/tournament_page.dart';
 import 'package:volleyball_tournament_app/routes/go_router.dart';
-import 'package:volleyball_tournament_app/teste_mobile.dart';
 import 'controller/data_controller.dart';
 import 'firebase_options.dart';
 

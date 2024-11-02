@@ -10,7 +10,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:volleyball_tournament_app/main.dart';
 import 'package:volleyball_tournament_app/model/partida.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
 
@@ -46,6 +45,14 @@ void main() {
     //   print('O JOGADOR ${player.nome} JOGOU ${player.partidasJogadas} PARTIDAS');
     // }
 
+  });
+
+  test('A função deve montar os quartetos corretamente sem repetir onde cada jogador jogou 3x', () {
+    List<List<Player>> quartetsMistos = generate4x4Game(true);
+    print("Quartetos mistos:");
+    quartetsMistos.forEach((quartet) {
+      print(quartet.map((player) => player.nome).toList());
+    });
   });
 }
 
@@ -92,109 +99,100 @@ void combinations(int r) {
   combine([], 0);
 }
 
-void generate2x2Games(int rodada) {
-  partidas = [];
-  List<Player> dupla = [];
-  Player? skippedPlayer;
-  int count = 0;
-  players.shuffle();
+List<List<Player>> generate4x4Game(bool misto) {
+  List<List<Player>> quartets = [];
+  Map<String, int> playerCount = {};
 
-  if (players.length.isOdd) {
-    final randomIndex = Random().nextInt(players.length);
-    skippedPlayer = players[randomIndex];
-    players = players.where((player) => player.nome != players[randomIndex].nome).toList();
-  }
+  // Filtra jogadores por sexo
+  List<Player> men = players.where((player) => player.sex == 0).toList();
+  List<Player> women = players.where((player) => player.sex == 1).toList();
 
-  for (var i = 0; i < 28; i++) {
-    dupla = [];
-    if (count + 1 >= players.length - 1) {
-      dupla.addAll([players[count], players[0]]);
-      count = 0;
-    }else {
-      dupla.addAll([players[count], players[count + 1]]);
+  // Gera combinações de quartetos
+  void backtrack(List<Player> currentQuartet, int startMen, int startWomen) {
+    if (currentQuartet.length == 4) {
+      // Adiciona apenas se nenhum jogador excedeu o limite
+      if (currentQuartet.every((player) => playerCount[player.nome!]! < 3)) {
+        quartets.add(List.from(currentQuartet));
+        for (var player in currentQuartet) {
+          playerCount[player.nome!] = playerCount[player.nome!]! + 1; // Incrementa a contagem
+        }
+      }
+      return;
     }
 
-    if (checkIfIsUnique(dupla, listaDeDuplas)) {
-      listaDeDuplas.add(dupla);
+    // Adiciona homens
+    if (currentQuartet.length < 2 && startMen < men.length) {
+      currentQuartet.add(men[startMen]);
+      backtrack(currentQuartet, startMen + 1, startWomen);
+      currentQuartet.removeLast();
     }
-    count++;
+
+    // Adiciona mulheres
+    if (currentQuartet.length < 4 && startWomen < women.length) {
+      currentQuartet.add(women[startWomen]);
+      backtrack(currentQuartet, startMen, startWomen + 1);
+      currentQuartet.removeLast();
+    }
   }
 
-  print('${listaDeDuplas.length} DUPLAS FORMADAS');
-
-  listaDeDuplas.shuffle();
-
-  for (var i = 0; i < listaDeDuplas.length; i++) {
-    if (i < listaDeDuplas.length) {
-      final team1 = listaDeDuplas[i];
-      if (checkIfIsUnique(team1, duplasQueJaJogaram)) {
-        duplasQueJaJogaram.add(team1);
-        int opponentIndex = generateRandomIndex(team1);
-        duplasQueJaJogaram.add(listaDeDuplas[opponentIndex]);
-
-        for (var player in listaDeDuplas[opponentIndex]) {
-          player.partidasJogadas = (player.partidasJogadas ?? 0) + 1;
+  if (misto) {
+    // Gera quartetos mistos com 2 homens e 2 mulheres
+    for (int i = 0; i < men.length; i++) {
+      for (int j = i + 1; j < men.length; j++) {
+        for (int k = 0; k < women.length; k++) {
+          for (int l = k + 1; l < women.length; l++) {
+            var quartet = [men[i], men[j], women[k], women[l]];
+            if (quartet.every((player) => playerCount[player.nome!] == null || playerCount[player.nome!]! < 3)) {
+              quartets.add(quartet);
+              for (var player in quartet) {
+                playerCount[player.nome!] = (playerCount[player.nome!] ?? 0) + 1; // Incrementa a contagem
+              }
+            }
+          }
         }
-
-        for (var player in team1) {
-          player.partidasJogadas = (player.partidasJogadas ?? 0) + 1;
-        }
-
-        partidas.add(Partida(
-          team1: team1,
-          team2: listaDeDuplas[opponentIndex],
-        ));
       }
     }
+  } else {
+    // Gera quartetos não mistos (apenas homens)
+    backtrack([], 0, 0);
   }
 
-  // Remove o jogador "Bye" no final da geração das partidas
-  players.removeWhere((p) => p.nome == 'Bye');
+  return quartets;
 }
 
-// Método para gerar um índice aleatório que representa um time oponente único
-int generateRandomIndex(List<Player> team1) {
-  int randomIndex = Random().nextInt(listaDeDuplas.length);
-
-  // Verifica se o time gerado é único e que não contém jogadores que já jogaram no mesmo time
-  while (!checkIfIsUnique(listaDeDuplas[randomIndex], duplasQueJaJogaram) ||
-      checkIfIsInSameTeam(team1, listaDeDuplas[randomIndex])) {
-    randomIndex = Random().nextInt(listaDeDuplas.length);
-  }
-
-  return randomIndex;
-}
-
-// Verifica se dois times têm os mesmos jogadores, independentemente da ordem
-bool checkIfIsInSameTeam(List<Player> team1, List<Player> team2) {
-  return (team1[0].nome == team2[0].nome || team1[0].nome == team2[1].nome) &&
-      (team1[1].nome == team2[0].nome || team1[1].nome == team2[1].nome);
-}
-
-// Verifica se a dupla é única dentro da lista de duplas já formadas
-bool checkIfIsUnique(List<Player> dupla, List<List<Player>> duplasJaFormadas) {
-  return duplasJaFormadas.where((t) =>
-  (t[0].nome == dupla[0].nome && t[1].nome == dupla[1].nome) ||
-      (t[0].nome == dupla[1].nome && t[1].nome == dupla[0].nome)).isEmpty;
-}
-
-// Atualiza o número de partidas jogadas pelos jogadores de um time
-void updatePlayerGames(List<Player> team) {
-  for (var player in team) {
-    player.partidasJogadas = (player.partidasJogadas ?? 0) + 1;
-  }
-}
 
 
 List<Player> players = [
   Player.withName('Matheus', 0),
-  Player.withName('Pedro', 0),
+  Player.withName('Maria', 1),
   Player.withName('Joao', 0),
-  Player.withName('Ricardo', 0),
+  Player.withName('Bia', 1),
   Player.withName('Victor', 0),
-  Player.withName('Diego', 0),
+  Player.withName('Anna', 1),
   Player.withName('Luis', 0),
-  Player.withName('Marcos', 0),
+  Player.withName('Dani', 1),
   Player.withName('Andre', 0),
-  Player.withName('Daniel', 0),
+  Player.withName('Clara', 1),
+  Player.withName('Fernando', 0),
+  Player.withName('Juliana', 1),
+  Player.withName('Carlos', 0),
+  Player.withName('Roberta', 1),
+  Player.withName('Gustavo', 0),
+  Player.withName('Sofia', 1),
+  Player.withName('Rafael', 0),
+  Player.withName('Larissa', 1),
+  Player.withName('Thiago', 0),
+  Player.withName('Patricia', 1),
+  Player.withName('Bruno', 0),
+  Player.withName('Jéssica', 1),
+  Player.withName('Diego', 0),
+  Player.withName('Fernanda', 1),
+  Player.withName('Eduardo', 0),
+  Player.withName('Vanessa', 1),
+  Player.withName('Marcelo', 0),
+  Player.withName('Priscila', 1),
+  Player.withName('Alan', 0),
+  Player.withName('Natalia', 1),
+  Player.withName('Leandro', 0),
+  Player.withName('Rafaela', 1),
 ];

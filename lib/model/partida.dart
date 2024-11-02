@@ -4,7 +4,7 @@ class Partida {
   List<Player>? team1;
   List<Player>? team2;
   int? vencedor;
-  int? pontos;
+  String? pontos;
   bool? finished;
 
   Partida({

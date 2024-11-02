@@ -34,7 +34,7 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
             _dataController.players.sort((a, b) => a.nome!.compareTo(b.nome!));
           }
           setState(() => _tournament = res);
-        }else if(!res) {
+        }else if(!(res ?? false)) {
           Navigator.pop(context);
         }
       });
@@ -224,9 +224,11 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
                               onPressed: () {
                                 if(readyPlayers.isNotEmpty) {
                                   _tournament!.jogadores = readyPlayers;
+                                  _tournament!.partidas ??= [];
                                   _dataController.tournament = _tournament;
-                                  _dataController.salvarTorneio(tournament: _tournament!);
-                                  GoRouter.of(context).go('/tournament/${_tournament!.nomeTorneio!}/match');
+                                  _dataController.salvarTorneio().whenComplete(() {
+                                    GoRouter.of(context).go('/tournament/${_tournament!.nomeTorneio!}/match');
+                                  });
                                 }
                               },
                               label: const Text('Iniciar torneio'),

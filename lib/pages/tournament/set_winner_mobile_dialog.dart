@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../model/partida.dart';
 
 class SetWinnerMobileDialog extends StatefulWidget {
@@ -10,17 +11,20 @@ class SetWinnerMobileDialog extends StatefulWidget {
 }
 
 class _SetWinnerMobileDialogState extends State<SetWinnerMobileDialog> {
+  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _controller2 = TextEditingController();
   bool _timeA = false;
   bool _setPoints = true;
+  String _resultado = '';
 
   ButtonStyle selectedStyle() => ElevatedButton.styleFrom(
       backgroundColor: const Color.fromRGBO(42, 35, 42, 1),
-      fixedSize: const Size(250, 50)
+      minimumSize: const Size(250, 100)
   );
 
   ButtonStyle unselectedStyle() => ElevatedButton.styleFrom(
     backgroundColor: Colors.black38,
-    fixedSize: const Size(240, 45),
+    minimumSize: const Size(240, 90),
   );
 
   TextStyle selectedTextStyle() => const TextStyle(
@@ -67,25 +71,72 @@ class _SetWinnerMobileDialogState extends State<SetWinnerMobileDialog> {
               )
             ],
           ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              const Text('Pontuou?'),
-              Transform.scale(
-                scale: .7,
-                child: Switch(
-                    value: _setPoints,
-                    onChanged: (value) {
-                      setState(() => _setPoints = !_setPoints);
-                    }
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24.0),
+            child: Row(
+              children: [
+                const Text('Pontuou?'),
+                Transform.scale(
+                  scale: .7,
+                  child: Switch(
+                      value: _setPoints,
+                      onChanged: (value) {
+                        setState(() => _setPoints = !_setPoints);
+                      }
+                  ),
+                )
+              ],
+            ),
+          ),
+          if(_setPoints)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('PLACAR (opcional)'),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 30,
+                      height: 40,
+                      child: TextField(
+                        controller: _controller,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        decoration: const InputDecoration(
+                          hintText: '0'
+                        ),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('X'),
+                    ),
+                    SizedBox(
+                      width: 30,
+                      height: 40,
+                      child: TextField(
+                        controller: _controller2,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        decoration: const InputDecoration(
+                            hintText: '0'
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              )
-            ],
-          )
+              ],
+            )
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, [_timeA, _setPoints]), child: const Text('Salvar')),
+        TextButton(onPressed: () => Navigator.pop(context, [_timeA, _setPoints, '${_controller.text} X ${_controller2.text}']), child: const Text('Salvar')),
       ],
     );
   }

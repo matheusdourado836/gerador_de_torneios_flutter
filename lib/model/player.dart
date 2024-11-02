@@ -47,6 +47,7 @@ class Player {
       'partidasJogadas': partidasJogadas,
       'vitorias': vitorias,
       'derrotas': derrotas,
+      'pontosAtuais': pontosAtuais,
       'pontos': pontos,
     };
   }
@@ -63,6 +64,7 @@ class Player {
       vitorias: json['vitorias'],
       derrotas: json['derrotas'],
       pontos: json['pontos'],
+      pontosAtuais: json['pontosAtuais'],
     );
   }
 }

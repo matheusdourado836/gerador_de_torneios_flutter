@@ -1,7 +1,10 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:volleyball_tournament_app/pages/tournament/check_admin_dialog.dart';
 import '../../controller/data_controller.dart';
 import '../../model/categoria.dart';
 import '../../model/partida.dart';
@@ -26,14 +29,18 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
   List<Partida> partidasHistory = [];
   Set<String> duplasUsadas = {};
   int playersBySide = 0;
-  int qtdRounds = 0;
   int currentRound = 0;
   int currentMatch = 0;
   List<double> fatorDeAjusteList = [];
+  bool? _admin;
 
-  void generate2x2game({bool misto = false}) {
+  void generateGame({bool misto = false}) {
     List<Partida> innerPartidas = [];
-    combinations(2, misto: misto);
+    if(playersBySide == 2) {
+      listaDeDuplas = dataProvider.generate2x2Combinations(misto: misto);
+    }else if(playersBySide == 4) {
+      listaDeDuplas = dataProvider.generate4x4Combinations(misto: misto);
+    }
 
     for (int i = 0; i < listaDeDuplas.length; i++) {
       for (int j = i + 1; j < listaDeDuplas.length; j++) {
@@ -43,7 +50,6 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
         if (time1.toSet().intersection(time2.toSet()).isEmpty) {
           String chaveTime1 = time1.join(',');
           String chaveTime2 = time2.join(',');
-
           if (!duplasUsadas.contains(chaveTime1) && !duplasUsadas.contains(chaveTime2)) {
             innerPartidas.add(Partida(team1: listaDeDuplas[i], team2: listaDeDuplas[j]));
             duplasUsadas.add(chaveTime1);
@@ -54,55 +60,13 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
     }
 
     setState(() {
+      listaDeDuplas;
       partidas = innerPartidas;
-      partidasHistory.addAll(partidas);
       partidas.shuffle();
     });
-  }
+    final partidasJson = partidas.map((partida) => partida.toJson()).toList();
+    dataProvider.updateTorneioData({"partidas": partidasJson}, dataProvider.tournament!.id!);
 
-  void combinations(int r, {bool misto = false}) {
-    listaDeDuplas = [];
-
-    if (misto) {
-      // Separar jogadores por sexo
-      List<Player> homens = players.where((p) => p.sex == null || p.sex == 0).toList();
-      List<Player> mulheres = players.where((p) => p.sex == 1).toList();
-
-      homens.sort((a, b) {
-        a.partidasJogadas ??= 0;
-        b.partidasJogadas ??= 0;
-        return a.partidasJogadas!.compareTo(b.partidasJogadas!);
-      });
-      mulheres.sort((a, b) {
-        a.partidasJogadas ??= 0;
-        b.partidasJogadas ??= 0;
-        return a.partidasJogadas!.compareTo(b.partidasJogadas!);
-      });
-
-      // Criar combinações entre homens e mulheres
-      for (var homem in homens) {
-        for (var mulher in mulheres) {
-          listaDeDuplas.add([homem, mulher]);
-        }
-      }
-      setState(() => listaDeDuplas);
-    } else {
-      // Caso misto seja falso, cria todas as combinações normalmente
-      void combine(List<Player> combo, int start) {
-        if (combo.length == r) {
-          listaDeDuplas.add(List.from(combo));
-          return;
-        }
-
-        for (int i = start; i < players.length; i++) {
-          combo.add(players[i]);
-          combine(combo, i + 1);
-          combo.removeLast();
-        }
-      }
-
-      combine([], 0);
-    }
   }
 
   void updatePlayerGames(List<Player> team) {
@@ -110,68 +74,142 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
       final playerFromList = players.firstWhere((p) => p.nome == player.nome);
       playerFromList.partidasJogadas = (playerFromList.partidasJogadas ?? 0) + 1;
     }
+    final playersJson = players.map((jogador) => jogador.toJson());
     setState(() => players);
+    dataProvider.updateTorneioData({"jogadores": playersJson}, dataProvider.tournament!.id!);
   }
 
   void updatePlayerRank(Player player) {
-    for(double fatorDeAjuste in fatorDeAjusteList.reversed) {
-      final playerMedia = (player.pontosAtuais ?? 0) / (player.partidasJogadas ?? 0);
-      if(fatorDeAjusteList.indexOf(fatorDeAjuste) == 0) {
-        if(!(dataProvider.tournament!.categorias![0].players?.contains(player) ?? false)) {
-          dataProvider.tournament!.categorias![0].players ??= [];
-          dataProvider.tournament!.categorias![0].players!.add(player);
-          final categoria = dataProvider.tournament!.categorias![0];
-          final List<Categoria> otherCategorias = dataProvider.tournament!.categorias!.where((c) => c.nome != categoria.nome).toList();
-          for(Categoria categoria in otherCategorias) {
-            if(categoria.players?.contains(player) ?? false) {
-              categoria.players!.remove(player);
-            }
-          }
-          return;
-        }
+    final categorias = dataProvider.tournament!.categorias!;
+    final playerMedia = (player.pontosAtuais ?? 0) / (player.partidasJogadas ?? 0);
+
+    // Função auxiliar para adicionar o jogador à categoria e removê-lo das outras.
+    void updateCategoria(int index) {
+      final categoria = categorias[index];
+      if (categoria.players?.contains(player) ?? false) return;
+
+      categoria.players ??= [];
+      categoria.players!.add(player);
+
+      for (var otherCategoria in categorias.where((c) => c != categoria)) {
+        otherCategoria.players?.remove(player);
       }
-      if(playerMedia >= fatorDeAjuste) {
-        final index = fatorDeAjusteList.indexOf(fatorDeAjuste);
-        if(!(dataProvider.tournament!.categorias![index].players?.contains(player) ?? false)) {
-          dataProvider.tournament!.categorias![index].players ??= [];
-          dataProvider.tournament!.categorias![index].players!.add(player);
-          final categoria = dataProvider.tournament!.categorias![index];
-          final List<Categoria> otherCategorias = dataProvider.tournament!.categorias!.where((c) => c.nome != categoria.nome).toList();
-          for(Categoria categoria in otherCategorias) {
-            if(categoria.players?.contains(player) ?? false) {
-              categoria.players!.remove(player);
-            }
-          }
-        }
+      final playersJson = players.map((jogador) => jogador.toJson());
+      final categoriasJson = dataProvider.tournament!.categorias?.map((categoria) => categoria.toJson());
+      Future.wait([
+        dataProvider.updateTorneioData({"categorias": categoriasJson}, dataProvider.tournament!.id!),
+        dataProvider.updateTorneioData({"jogadores": playersJson}, dataProvider.tournament!.id!)
+      ]);
+    }
+
+    for (int i = fatorDeAjusteList.length - 1; i >= 0; i--) {
+      final fatorDeAjuste = fatorDeAjusteList[i];
+      if (i == 0) {
+        updateCategoria(0);
+        return;
+      } else if (playerMedia >= fatorDeAjuste) {
+        updateCategoria(i);
         return;
       }
     }
   }
 
+  void addRoundManually() => showDialog(
+      context: context,
+      builder: (context) {
+        ValueNotifier<bool> flag = ValueNotifier(false);
+        List<String> players = dataProvider.tournament!.jogadores!.map((player) => player.nome!).toList();
+        final partida = Partida();
+        List<String?> team1Selection = List<String?>.filled(players.length, null);
+        List<String?> team2Selection = List<String?>.filled(players.length, null);
+        return AlertDialog(
+          title: const Text('Adicionar Partida'),
+          content: ValueListenableBuilder(valueListenable: flag, builder: (context, val, _) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('TIME A'),
+                for(var i = 0; i < playersBySide; i++)
+                  DropdownButton<String>(
+                      value: team1Selection[i],
+                      items: players.map((player) => DropdownMenuItem(value: player, child: Text(player),)).toList(),
+                      onChanged: (newValue) {
+                        team1Selection[i] = newValue;
+                        flag.value = !flag.value;
+                      }
+                  ),
+                const SizedBox(height: 16),
+                const Text('TIME B'),
+                for(var j = 0; j < playersBySide; j++)
+                  DropdownButton<String>(
+                      value: team2Selection[j],
+                      items: players.map((player) => DropdownMenuItem(value: player, child: Text(player),)).toList(),
+                      onChanged: (newValue) {
+                        team2Selection[j] = newValue;
+                        flag.value = !flag.value;
+                      }
+                  ),
+              ],
+            );
+          }),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  if(team1Selection.nonNulls.length == 4 && team2Selection.nonNulls.length == 4) {
+                    partida.team1 ??= [];
+                    partida.team2 ??= [];
+                    for(var player in team1Selection.nonNulls.toList()) {
+                      partida.team1!.add(dataProvider.tournament!.jogadores!.firstWhere((p) => p.nome == player));
+                    }
+                    for(var player in team2Selection.nonNulls.toList()) {
+                      partida.team2!.add(dataProvider.tournament!.jogadores!.firstWhere((p) => p.nome == player));
+                    }
+                    setState(() {
+                      final Random random = Random();
+                      partidas.insert(random.nextInt(partidas.length), partida);
+                    });
+                    final partidasJson = partidas.map((partida) => partida.toJson()).toList();
+                    dataProvider.updateTorneioData({"partidas": partidasJson}, dataProvider.tournament!.id!);
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text('Salvar')
+            )
+          ],
+        );
+      }
+  );
+
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      dataProvider.carregarTorneio(widget.tournamentName).whenComplete(() {
-        if(dataProvider.tournament == null) {
-          GoRouter.of(context).go('/');
-          return;
-        }
-        players = dataProvider.tournament!.jogadores ?? [];
-        playersBySide = int.parse(dataProvider.tournament!.qtdJogadoresEmCampo!.split('x')[0]);
-        dataProvider.tournament!.categorias!.sort((a, b) {
-          if(a.nivelCategoria! == 'Iniciante') {
-            return 0;
-          }else if(a.nivelCategoria == 'Amador') {
-            return 0;
-          }else {
-            return 1;
+      showDialog(context: context, barrierDismissible: false, builder: (context) => CheckAdminDialog(tournamentName: widget.tournamentName,)).then((res) {
+        _admin = res;
+        dataProvider.carregarTorneio(widget.tournamentName).whenComplete(() {
+          if(dataProvider.tournament == null) {
+            GoRouter.of(context).go('/');
+            return;
+          }
+          players = dataProvider.tournament!.jogadores ?? [];
+          partidas = dataProvider.tournament!.partidas ?? [];
+          partidasHistory = dataProvider.tournament!.partidas?.where((partida) => partida.finished == true).toList() ?? [];
+          playersBySide = int.parse(dataProvider.tournament!.qtdJogadoresEmCampo!.split('x')[0]);
+          dataProvider.tournament!.categorias!.sort((a, b) {
+            if(a.nivelCategoria! == 'Iniciante') {
+              return 0;
+            }else if(a.nivelCategoria == 'Amador') {
+              return 0;
+            }else {
+              return 1;
+            }
+          });
+          switch(dataProvider.tournament!.categorias!.length) {
+            case 2: return setState(() => fatorDeAjusteList = [0.5, 1]);
+            case 3: return setState(() => fatorDeAjusteList = [0.3, 0.4, 0.75]);
+            case 4: return setState(() => fatorDeAjusteList = [0.3, 0.4, 0.7, 0.9]);
           }
         });
-        switch(dataProvider.tournament!.categorias!.length) {
-          case 2: return setState(() => fatorDeAjusteList = [0.5, 1]);
-          case 3: return setState(() => fatorDeAjusteList = [0.3, 0.4, 0.75]);
-          case 4: return setState(() => fatorDeAjusteList = [0.3, 0.4, 0.7, 0.9]);
-        }
       });
     });
     super.initState();
@@ -198,7 +236,7 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
             );
           }
 
-          if(value.tournament == null || value.players.isEmpty) {
+          if(value.tournament == null || value.players.isEmpty || _admin == null) {
             return const SizedBox(
               child: Text('NAO FOI POSSIVEL INICIAR O TORNEIO'),
             );
@@ -209,25 +247,29 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                 return SingleChildScrollView(
                   child: Column(
                     children: [
-                      if(partidas.isNotEmpty && partidas.every((partida) => partida.finished ?? false))
-                        ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                partidas = [];
-                                listaDeDuplas = [];
-                                currentRound++;
-                                currentMatch = 0;
-                                _controller.jumpToPage(0);
-                              });
-                              generate2x2game(misto: dataProvider.tournament?.misto ?? false);
-                            },
-                            child: const Text('+1 rodada')
-                        ),
                       if(partidas.isEmpty)
-                        Align(
-                            alignment: Alignment.center,
-                            child: ElevatedButton(onPressed: () => generate2x2game(misto: dataProvider.tournament?.misto ?? false), child: const Text('Gerar times'))
-                        )
+                        if(_admin ?? false)
+                          SizedBox(
+                            width: constraints.maxWidth,
+                            height: constraints.maxHeight,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton(
+                                    onPressed: () => generateGame(misto: dataProvider.tournament?.misto ?? false),
+                                    child: const Text('Gerar times')
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                    onPressed: () => addRoundManually(),
+                                    child: const Text('Adicionar manualmente')
+                                )
+                              ],
+                            ),
+                          )
+                          else const Center(
+                            child: Text('Aguarde o administrador iniciar os jogos'),
+                          )
                       else
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -262,7 +304,7 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                             ),
                             SizedBox(
                               width: constraints.maxWidth,
-                              height: constraints.maxHeight * .9,
+                              height: constraints.maxHeight * .95,
                               child: PageView.builder(
                                 controller: _controller,
                                 onPageChanged: (page) => setState(() => currentMatch = page),
@@ -295,13 +337,17 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                                             showDialog(
                                               context: context,
                                               builder: (context) => SetWinnerMobileDialog(partida: partidas[index])).then((res) {
-                                              _controller.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
                                                 if(res is List) {
+                                                  _controller.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
                                                   setState(() {
                                                     updatePlayerGames(team1);
                                                     updatePlayerGames(team2);
                                                     partidas[index].finished = true;
                                                     partidas[index].vencedor = res[0] ? 0 : 1;
+                                                    partidas[index].pontos = res[2];
+                                                    final partidasJson = partidas.map((partida) => partida.toJson());
+                                                    dataProvider.updateTorneioData({"partidas": partidasJson}, dataProvider.tournament!.id!);
+                                                    partidasHistory.add(partidas[index]);
                                                     if(res[1]) {
                                                       if(res[0]) {
                                                         for(var player in team1) {
@@ -370,7 +416,7 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                                         child: Text(player.nome!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),)
                                     ),
                                     Text(player.partidasJogadas!.toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
-                                    Text('${player.pontos}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),),
+                                    Text('${player.pontosAtuais ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),),
                                     Padding(
                                       padding: const EdgeInsets.only(right: 10.0),
                                       child: Text(((player.pontosAtuais ?? 0) / (player.partidasJogadas ?? 0)).toStringAsFixed(2), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
@@ -429,15 +475,31 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                         ),
                       ),
                       Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Histórico de jogos', style: Theme.of(context).textTheme.titleLarge),
                           const SizedBox(height: 16),
                           for(var i = 0; i < partidasHistory.length; i++)
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 16.0),
-                              child: Text(
-                                '${partidasHistory[i].team1![0].nome} e ${partidasHistory[i].team1![1].nome} x ${partidasHistory[i].team2![0].nome} e ${partidasHistory[i].team2![1].nome}'
+                              padding: const EdgeInsets.only(bottom: 16.0, left: 12, right: 12),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        children: partidasHistory[i].team1!.map((player) => Text(player.nome!, overflow: TextOverflow.clip,)).toList(),
+                                      ),
+                                      Text(
+                                        '${partidasHistory[i].pontos?.split('X')[0].trim() ?? ''} X ${partidasHistory[i].pontos?.split('X')[1].trim() ?? ''}',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                                      ),
+                                      Column(
+                                        children: partidasHistory[i].team2!.map((player) => Text(player.nome!, overflow: TextOverflow.clip)).toList(),
+                                      ),
+                                    ],
+                                  ),
+                                  const Divider()
+                                ],
                               ),
                             )
                         ],
@@ -449,6 +511,7 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
           );
         },
       ),
+      floatingActionButton: FloatingActionButton(onPressed: () => addRoundManually(), child: const Icon(Icons.add),),
     );
   }
 }

@@ -195,7 +195,7 @@ class _TournamentPageState extends State<TournamentPage> {
                             if(readyPlayers.isNotEmpty) {
                               _tournament!.jogadores = readyPlayers;
                               _dataController.tournament = _tournament;
-                              _dataController.salvarTorneio(tournament: _dataController.tournament!);
+                              _dataController.salvarTorneio();
                               GoRouter.of(context).go('/tournament/${_tournament!.nomeTorneio!}/match');
                             }
                           },
