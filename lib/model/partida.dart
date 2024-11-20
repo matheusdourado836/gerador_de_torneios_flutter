@@ -15,6 +15,11 @@ class Partida {
     this.finished,
   });
 
+  @override
+  toString() {
+    return '$team1 /// $team2';
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'team1': team1?.map((player) => player.toJson()).toList(),

@@ -8,7 +8,8 @@ import '../../../model/partida.dart';
 
 class KnockoutStagePage extends StatefulWidget {
   final String nomeTorneio;
-  const KnockoutStagePage({super.key, required this.nomeTorneio});
+  final bool admin;
+  const KnockoutStagePage({super.key, required this.nomeTorneio, required this.admin});
 
   @override
   State<KnockoutStagePage> createState() => _KnockoutStagePageState();
@@ -48,9 +49,9 @@ class _KnockoutStagePageState extends State<KnockoutStagePage> {
       if(_dataController.tournament == null) {
         _dataController.carregarTorneio(widget.nomeTorneio).whenComplete(() {
           _dataController.tournament!.categorias ??= [];
-          for(var (index, categoria) in _dataController.tournament!.categorias!.indexed) {
+          for(var categoria in _dataController.tournament!.categorias!) {
             categoria.players ??= [];
-            categoria.players = playersFake[index];
+            //categoria.players = playersFake[index];
             for(var player in categoria.players!) {
               player.pontosAtuais = 0;
             }
@@ -77,8 +78,10 @@ class _KnockoutStagePageState extends State<KnockoutStagePage> {
           }
 
           if(_start) {
-            return const KnockoutMatchMobilePage();
+            return KnockoutMatchMobilePage(admin: widget.admin);
           }
+
+          final categorias = value.tournament?.categorias?.where((c) => c.players?.isNotEmpty ?? false).toList() ?? [];
 
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
@@ -87,7 +90,7 @@ class _KnockoutStagePageState extends State<KnockoutStagePage> {
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: value.tournament?.categorias?.map((categoria) => _BuildCategoria(categoria: categoria)).toList() ?? [],
+                  children: categorias.map((categoria) => _BuildCategoria(categoria: categoria)).toList(),
                 ),
                 ElevatedButton(onPressed: () => setState(() => _start = true), child: const Text('INICIAR JOGOS'))
               ],

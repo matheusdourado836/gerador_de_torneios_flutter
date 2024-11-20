@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
-import 'package:volleyball_tournament_app/pages/tournament/edit_players_dialog.dart';
-import 'package:volleyball_tournament_app/pages/tournament/set_winner_dialog.dart';
+import 'package:volleyball_tournament_app/pages/tournament/widgets/edit_players_dialog.dart';
+import 'package:volleyball_tournament_app/pages/tournament/widgets/set_winner_dialog.dart';
 import 'model/partida.dart';
 import 'model/player.dart';
 
@@ -75,7 +75,7 @@ class _TesteState extends State<Teste> {
 
   void updatePlayerGames(List<Player> team) {
     for (var player in team) {
-      player.partidasJogadas = (player.partidasJogadas ?? 0) + 1;
+      player.totalJogos = (player.totalJogos ?? 0) + 1;
     }
     setState(() => team);
   }
@@ -187,7 +187,7 @@ class _TesteState extends State<Teste> {
                               width: 150,
                               child: Text(player.nome!)
                           ),
-                          SizedBox(width: 200, child: Text(player.partidasJogadas!.toString(), textAlign: TextAlign.center,)),
+                          SizedBox(width: 200, child: Text(player.totalJogos!.toString(), textAlign: TextAlign.center,)),
                           Text('${player.pontos}', style: const TextStyle(fontWeight: FontWeight.bold),)
                         ],),
                     )

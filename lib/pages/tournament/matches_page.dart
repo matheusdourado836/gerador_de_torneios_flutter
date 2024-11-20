@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:volleyball_tournament_app/controller/data_controller.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
-import 'package:volleyball_tournament_app/pages/tournament/edit_players_dialog.dart';
-import 'package:volleyball_tournament_app/pages/tournament/set_winner_dialog.dart';
+import 'package:volleyball_tournament_app/pages/tournament/widgets/edit_players_dialog.dart';
+import 'package:volleyball_tournament_app/pages/tournament/widgets/set_winner_dialog.dart';
 import '../../model/partida.dart';
 
 class MatchesPage extends StatefulWidget {
@@ -122,7 +122,7 @@ class _MatchesPageState extends State<MatchesPage> {
   void updatePlayerGames(List<Player> team) {
     for (var player in team) {
       final playerFromList = players.firstWhere((p) => p.nome == player.nome);
-      playerFromList.partidasJogadas = (playerFromList.partidasJogadas ?? 0) + 1;
+      playerFromList.totalJogos = (playerFromList.totalJogos ?? 0) + 1;
     }
     setState(() => players);
   }
@@ -288,7 +288,7 @@ class _MatchesPageState extends State<MatchesPage> {
                                   width: 150,
                                   child: Text(player.nome!, style: const TextStyle(fontSize: 18),)
                               ),
-                              SizedBox(width: 200, child: Text(player.partidasJogadas!.toString(), style: const TextStyle(fontSize: 18), textAlign: TextAlign.center,)),
+                              SizedBox(width: 200, child: Text(player.totalJogos?.toString() ?? '0', style: const TextStyle(fontSize: 18), textAlign: TextAlign.center,)),
                               Text('${player.pontos}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),)
                             ],),
                         )

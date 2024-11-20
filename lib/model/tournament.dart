@@ -5,6 +5,7 @@ import 'enums.dart';
 
 class Tournament {
   String? id;
+  DateTime? createdAt;
   String? nomeTorneio;
   String? codigo;
   String? senha;
@@ -19,6 +20,7 @@ class Tournament {
 
   Tournament({
     this.id,
+    this.createdAt,
     this.nomeTorneio,
     this.codigo,
     this.senha,
@@ -35,6 +37,7 @@ class Tournament {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'createdAt': createdAt?.toIso8601String(),
       'nomeTorneio': nomeTorneio,
       'codigo': codigo,
       'senha': senha,
@@ -52,6 +55,7 @@ class Tournament {
   factory Tournament.fromJson(Map<String, dynamic> json) {
     return Tournament(
       id: json['id'],
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       nomeTorneio: json['nomeTorneio'],
       codigo: json['codigo'],
       senha: json['senha'],

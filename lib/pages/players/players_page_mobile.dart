@@ -140,7 +140,7 @@ class _PlayersPageMobileState extends State<PlayersPageMobile> {
                     if(newValue.isEmpty) {
                       setState(() {
                         searchList = [];
-                        //value.players.sort((a, b) => a.nome!.compareTo(b.nome!));
+                        value.players.sort((a, b) => a.nome!.compareTo(b.nome!));
                       });
                     }else {
                       final querySemAcento = removerAcentos(newValue.toLowerCase());
@@ -151,7 +151,13 @@ class _PlayersPageMobileState extends State<PlayersPageMobile> {
                   },
                   decoration: InputDecoration(
                       hintText: 'Pesquisar jogador...',
-                      suffixIcon: IconButton(onPressed: () => _controller.clear(), icon: const Icon(Icons.close)),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          _controller.clear();
+                          setState(() => searchList = []);
+                        },
+                        icon: const Icon(Icons.close)
+                      ),
                       enabledBorder: OutlineInputBorder(
                           borderSide: const BorderSide(color: Colors.grey),
                           borderRadius: BorderRadius.circular(8)

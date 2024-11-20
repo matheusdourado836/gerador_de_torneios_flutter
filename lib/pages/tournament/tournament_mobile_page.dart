@@ -6,7 +6,7 @@ import '../../helpers/remover_acentos.dart';
 import '../../model/player.dart';
 import '../../model/tournament.dart';
 import '../players/player_dialog_actions.dart';
-import 'init_tournament_dialog.dart';
+import 'widgets/init_tournament_dialog.dart';
 
 class TournamentMobilePage extends StatefulWidget {
   const TournamentMobilePage({super.key});
@@ -17,10 +17,52 @@ class TournamentMobilePage extends StatefulWidget {
 
 class _TournamentMobilePageState extends State<TournamentMobilePage> {
   late final DataController _dataController;
+  final TextEditingController _controller = TextEditingController();
   ValueNotifier<bool> updateList = ValueNotifier(false);
   Tournament? _tournament;
   List<Player> readyPlayers = [];
+  List<Player> searchList = [];
   int addedPlayers = 0;
+
+  Widget playersList(List<Player> players) => Expanded(
+    child: ListView.separated(
+      shrinkWrap: true,
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100),
+      itemCount: players.length,
+      separatorBuilder: (context, index) => const Divider(),
+      itemBuilder: (context, index) {
+        final player = players[index];
+
+        return ListTile(
+          title: Text(player.nome ?? ''),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+          subtitle: Row(
+            children: [
+              Text('Vitórias ${player.vitorias}', style: const TextStyle(color: Colors.green, fontSize: 12),),
+              const SizedBox(width: 8,),
+              Text('Derrotas ${player.derrotas}', style: const TextStyle(color: Colors.red, fontSize: 12)),
+            ],
+          ),
+          trailing: Transform.scale(
+            scale: .7,
+            child: ChoiceChip(
+              selected: readyPlayers.contains(player),
+              onSelected: (value) {
+                if(!readyPlayers.contains(player)) {
+                  setState(() {
+                    addedPlayers++;
+                    readyPlayers.add(player);
+                  });
+                }
+              },
+              label: const Text('CHECK-IN', style: TextStyle(color: Colors.white)),
+              backgroundColor: const Color.fromRGBO(42, 35, 42, 1),
+            ),
+          ),
+        );
+      },
+    ),
+  );
 
   @override
   void initState() {
@@ -127,21 +169,29 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12.0),
                       child: TextField(
+                        controller: _controller,
                         onChanged: (newValue) {
                           if(newValue.isEmpty) {
-                            setState(() => value.players.sort((a, b) => a.nome!.compareTo(b.nome!)));
+                            setState(() {
+                              searchList = [];
+                              value.players.sort((a, b) => a.nome!.compareTo(b.nome!));
+                            });
                           }else {
                             final querySemAcento = removerAcentos(newValue.toLowerCase());
                             setState(() {
-                              value.players.sort(
-                                (a, b) => a.nome!.toLowerCase().startsWith(querySemAcento)
-                                  || a.nome!.toLowerCase().contains(querySemAcento) ? 0 : 1
-                              );
+                              searchList = value.players.where((player) => removerAcentos(player.nome!.toLowerCase()).startsWith(querySemAcento) || player.nome!.toLowerCase().contains(querySemAcento)).toList();
                             });
                           }
                         },
                         decoration: InputDecoration(
                             hintText: 'Pesquisar jogador...',
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                _controller.clear();
+                                setState(() => searchList = []);
+                              },
+                              icon: const Icon(Icons.close)
+                            ),
                             enabledBorder: OutlineInputBorder(
                                 borderSide: const BorderSide(color: Colors.grey),
                                 borderRadius: BorderRadius.circular(8)
@@ -154,45 +204,11 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100),
-                        itemCount: value.players.length,
-                        separatorBuilder: (context, index) => const Divider(),
-                        itemBuilder: (context, index) {
-                          final player = value.players[index];
+                    if(searchList.isNotEmpty)
+                      playersList(searchList)
+                    else
+                      playersList(value.players)
 
-                          return ListTile(
-                            title: Text(player.nome ?? ''),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                            subtitle: Row(
-                              children: [
-                                Text('Vitórias ${player.vitorias}', style: const TextStyle(color: Colors.green, fontSize: 12),),
-                                const SizedBox(width: 8,),
-                                Text('Derrotas ${player.derrotas}', style: const TextStyle(color: Colors.red, fontSize: 12)),
-                              ],
-                            ),
-                            trailing: Transform.scale(
-                              scale: .7,
-                              child: ChoiceChip(
-                                selected: readyPlayers.contains(player),
-                                onSelected: (value) {
-                                  if(!readyPlayers.contains(player)) {
-                                    setState(() {
-                                      addedPlayers++;
-                                      readyPlayers.add(player);
-                                    });
-                                  }
-                                },
-                                label: const Text('CHECK-IN', style: TextStyle(color: Colors.white)),
-                                backgroundColor: const Color.fromRGBO(42, 35, 42, 1),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
                   ],
                 );
               },

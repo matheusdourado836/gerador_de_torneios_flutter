@@ -5,10 +5,11 @@ import 'package:volleyball_tournament_app/model/categoria.dart';
 import '../../../model/partida.dart';
 import '../../../model/player.dart';
 import '../matches_mobile_page.dart';
-import '../set_winner_mobile_dialog.dart';
+import '../widgets/set_winner_mobile_dialog.dart';
 
 class KnockoutMatchMobilePage extends StatefulWidget {
-  const KnockoutMatchMobilePage({super.key});
+  final bool admin;
+  const KnockoutMatchMobilePage({super.key, required this.admin});
 
   @override
   State<KnockoutMatchMobilePage> createState() => _KnockoutMatchMobilePageState();
@@ -16,11 +17,19 @@ class KnockoutMatchMobilePage extends StatefulWidget {
 
 class _KnockoutMatchMobilePageState extends State<KnockoutMatchMobilePage> {
   final PageController _controller = PageController();
+  late final DataController _dataController;
   int categoriaAtual = 0;
+  List<Categoria> categorias = [];
+
+  @override
+  void initState() {
+    _dataController = Provider.of<DataController>(context, listen: false);
+    categorias = _dataController.tournament!.categorias!.where((c) => c.players?.isNotEmpty ?? false).toList();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final dataProvider = Provider.of<DataController>(context, listen: false);
     return LayoutBuilder(
       builder: (context, constraints) {
         return Column(
@@ -33,7 +42,7 @@ class _KnockoutMatchMobilePageState extends State<KnockoutMatchMobilePage> {
                     icon: const Icon(Icons.arrow_back_ios)
                 ),
                 Text(
-                    '${dataProvider.tournament!.categorias![categoriaAtual].nome}',
+                    '${categorias[categoriaAtual].nome}',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge
                 ),
@@ -49,10 +58,14 @@ class _KnockoutMatchMobilePageState extends State<KnockoutMatchMobilePage> {
               child: PageView.builder(
                 controller: _controller,
                 onPageChanged: (page) => setState(() => categoriaAtual = page),
-                itemCount: dataProvider.tournament!.categorias?.length ?? 0,
+                itemCount: categorias.length,
                 itemBuilder: (context, index) {
-                  final players = dataProvider.tournament!.categorias![index].players;
-                  return _MatchWidget(categoria: dataProvider.tournament!.categorias![index], constraints: constraints);
+                  final players = categorias[index].players;
+                  return _MatchWidget(
+                    categoria: categorias[index],
+                    constraints: constraints,
+                    admin: widget.admin,
+                  );
                 },
               ),
             ),
@@ -66,7 +79,8 @@ class _KnockoutMatchMobilePageState extends State<KnockoutMatchMobilePage> {
 class _MatchWidget extends StatefulWidget {
   final Categoria categoria;
   final BoxConstraints constraints;
-  const _MatchWidget({required this.categoria, required this.constraints});
+  final bool admin;
+  const _MatchWidget({required this.categoria, required this.constraints, required this.admin});
 
   @override
   State<_MatchWidget> createState() => _MatchWidgetState();
@@ -122,14 +136,14 @@ class _MatchWidgetState extends State<_MatchWidget> {
       List<Player> mulheres = widget.categoria.players!.where((p) => p.sex == 1).toList();
 
       homens.sort((a, b) {
-        a.partidasJogadas ??= 0;
-        b.partidasJogadas ??= 0;
-        return a.partidasJogadas!.compareTo(b.partidasJogadas!);
+        a.totalJogos ??= 0;
+        b.totalJogos ??= 0;
+        return a.totalJogos!.compareTo(b.totalJogos!);
       });
       mulheres.sort((a, b) {
-        a.partidasJogadas ??= 0;
-        b.partidasJogadas ??= 0;
-        return a.partidasJogadas!.compareTo(b.partidasJogadas!);
+        a.totalJogos ??= 0;
+        b.totalJogos ??= 0;
+        return a.totalJogos!.compareTo(b.totalJogos!);
       });
 
       // Criar combinações entre homens e mulheres
@@ -161,13 +175,14 @@ class _MatchWidgetState extends State<_MatchWidget> {
   void updatePlayerGames(List<Player> team) {
     for (var player in team) {
       final playerFromList = widget.categoria.players!.firstWhere((p) => p.nome == player.nome);
-      playerFromList.partidasJogadas = (playerFromList.partidasJogadas ?? 0) + 1;
+      playerFromList.totalJogos = (playerFromList.totalJogos ?? 0) + 1;
     }
     setState(() => widget.categoria.players);
   }
 
   @override
   void initState() {
+    playersBySide = int.parse(_dataController.tournament!.qtdJogadoresEmCampo?.split('X')[0] ?? '');
     generate2x2game(misto: _dataController.tournament!.misto ?? false);
     super.initState();
   }
@@ -211,7 +226,7 @@ class _MatchWidgetState extends State<_MatchWidget> {
             ),
             SizedBox(
               width: widget.constraints.maxWidth,
-              height: widget.constraints.maxHeight * .9,
+              height: widget.constraints.maxHeight * .8,
               child: PageView.builder(
                 controller: _controller,
                 onPageChanged: (page) => setState(() => currentMatch = page),
@@ -236,7 +251,12 @@ class _MatchWidgetState extends State<_MatchWidget> {
                             )
                         ],
                       ),
-                      PartidaItem(team1: team1!, team2: team2!, partida: partidas[index]),
+                      PartidaItem(
+                        team1: team1!,
+                        team2: team2!,
+                        partida: partidas[index],
+                        admin: widget.admin,
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         child: ElevatedButton(

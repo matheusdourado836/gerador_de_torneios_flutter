@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
@@ -112,6 +111,56 @@ class DataController extends ChangeNotifier {
     return;
   }
 
+  List<List<Player>> generateQuartets(bool misto) {
+    List<List<Player>> quartets = [];
+    Map<String, int> playerCount = {};
+
+    for (var player in tournament!.jogadores!) {
+      playerCount[player.nome!] = 0;
+    }
+
+    List<Player> filteredPlayers = misto
+        ? tournament!.jogadores!
+        : tournament!.jogadores!.where((player) => player.sex == 0).toList();
+
+    // Função recursiva para gerar os quartetos
+    void backtrack(List<Player> currentQuartet, int start) {
+      if (currentQuartet.length == 4) {
+        // Verifica se algum jogador no quarteto excedeu 3 aparições
+        bool validQuartet = true;
+        for (var player in currentQuartet) {
+          if (playerCount[player.nome!]! > 50) {
+            validQuartet = false;
+            break;
+          }
+        }
+
+        // Apenas adiciona o quarteto se for válido
+        if (validQuartet) {
+          quartets.add(List.from(currentQuartet));
+          for (var player in currentQuartet) {
+            playerCount[player.nome!] = playerCount[player.nome!]! + 1;
+          }
+        }
+        return;
+      }
+
+      for (int i = start; i < filteredPlayers.length; i++) {
+        Player player = filteredPlayers[i];
+
+        // Verifica se o jogador ainda pode ser adicionado sem exceder o limite de 3
+        if (playerCount[player.nome!]! < 50) {
+          currentQuartet.add(player);
+          backtrack(currentQuartet, i + 1);
+          currentQuartet.removeLast();
+        }
+      }
+    }
+
+    backtrack([], 0);
+    return quartets;
+  }
+
   List<List<Player>> generate4x4Combinations({bool misto = false}) {
     List<List<Player>> quartets = [];
     Map<String, int> playerCount = {};
@@ -124,7 +173,7 @@ class DataController extends ChangeNotifier {
     void backtrack(List<Player> currentQuartet, int startMen, int startWomen) {
       if (currentQuartet.length == 4) {
         // Adiciona apenas se nenhum jogador excedeu o limite
-        if (currentQuartet.every((player) => playerCount[player.nome!]! < 3)) {
+        if (currentQuartet.every((player) => playerCount[player.nome!]! < 5)) {
           quartets.add(List.from(currentQuartet));
           for (var player in currentQuartet) {
             playerCount[player.nome!] = playerCount[player.nome!]! + 1; // Incrementa a contagem
@@ -155,10 +204,10 @@ class DataController extends ChangeNotifier {
           for (int k = 0; k < women.length; k++) {
             for (int l = k + 1; l < women.length; l++) {
               var quartet = [men[i], men[j], women[k], women[l]];
-              if (quartet.every((player) => playerCount[player.nome!] == null || playerCount[player.nome!]! < 3)) {
+              if (quartet.every((player) => (playerCount[player.nome!] ?? 0) < 6)) {
                 quartets.add(quartet);
                 for (var player in quartet) {
-                  playerCount[player.nome!] = (playerCount[player.nome!] ?? 0) + 1; // Incrementa a contagem
+                  playerCount[player.nome!] = (playerCount[player.nome!] ?? 0) + 1;
                 }
               }
             }
@@ -182,14 +231,14 @@ class DataController extends ChangeNotifier {
       List<Player> mulheres = players.where((p) => p.sex == 1).toList();
 
       homens.sort((a, b) {
-        a.partidasJogadas ??= 0;
-        b.partidasJogadas ??= 0;
-        return a.partidasJogadas!.compareTo(b.partidasJogadas!);
+        a.totalJogos ??= 0;
+        b.totalJogos ??= 0;
+        return a.totalJogos!.compareTo(b.totalJogos!);
       });
       mulheres.sort((a, b) {
-        a.partidasJogadas ??= 0;
-        b.partidasJogadas ??= 0;
-        return a.partidasJogadas!.compareTo(b.partidasJogadas!);
+        a.totalJogos ??= 0;
+        b.totalJogos ??= 0;
+        return a.totalJogos!.compareTo(b.totalJogos!);
       });
 
       // Criar combinações entre homens e mulheres

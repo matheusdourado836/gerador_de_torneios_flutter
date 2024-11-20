@@ -84,7 +84,7 @@ class _PlayersPageState extends State<PlayersPage> {
                   children: [
                     Text('Vitórias ${player.vitorias} - ', style: const TextStyle(color: Colors.green, fontSize: 12),),
                     Text('Derrotas ${player.derrotas} - ', style: const TextStyle(color: Colors.red, fontSize: 12)),
-                    Text('Total - ${player.partidasJogadas} jogadas', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                    Text('Total - ${player.totalJogos} jogadas', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
                   ],
                 ),
                 trailing: Row(

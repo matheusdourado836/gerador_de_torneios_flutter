@@ -69,7 +69,7 @@ class AppRouter {
               path: 'fase2',
               builder: (context, state) {
                 final tournamentName = state.pathParameters['nomeDoTorneio'] ?? '';
-                return KnockoutStagePage(nomeTorneio: tournamentName);
+                return KnockoutStagePage(nomeTorneio: tournamentName, admin: false,);
               }
           ),
         ]

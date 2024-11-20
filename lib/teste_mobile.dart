@@ -3,9 +3,9 @@ import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:volleyball_tournament_app/model/categoria.dart';
 import 'package:volleyball_tournament_app/model/tournament.dart';
-import 'package:volleyball_tournament_app/pages/tournament/edit_players_dialog.dart';
-import 'package:volleyball_tournament_app/pages/tournament/set_winner_dialog.dart';
-import 'package:volleyball_tournament_app/pages/tournament/set_winner_mobile_dialog.dart';
+import 'package:volleyball_tournament_app/pages/tournament/widgets/edit_players_dialog.dart';
+import 'package:volleyball_tournament_app/pages/tournament/widgets/set_winner_dialog.dart';
+import 'package:volleyball_tournament_app/pages/tournament/widgets/set_winner_mobile_dialog.dart';
 import '../../controller/data_controller.dart';
 import '../../model/partida.dart';
 import '../../model/player.dart';
@@ -123,7 +123,7 @@ class _TesteMobileState extends State<TesteMobile> {
   void updatePlayerGames(List<Player> team) {
     for (var player in team) {
       final playerFromList = players.firstWhere((p) => p.nome == player.nome);
-      playerFromList.partidasJogadas = (playerFromList.partidasJogadas ?? 0) + 1;
+      playerFromList.totalJogos = (playerFromList.totalJogos ?? 0) + 1;
     }
     setState(() => players);
   }
@@ -192,7 +192,7 @@ class _TesteMobileState extends State<TesteMobile> {
 
   void updatePlayerRank(Player player) {
     for(double fatorDeAjuste in fatorDeAjusteList) {
-      final playerMedia = (player.pontos ?? 0) / (player.partidasJogadas ?? 0);
+      final playerMedia = (player.pontos ?? 0) / (player.totalJogos ?? 0);
       if(playerMedia >= fatorDeAjuste) {
         final index = fatorDeAjusteList.indexOf(fatorDeAjuste);
         dataProvider.tournament!.categorias![index].players ??= [];
@@ -379,7 +379,7 @@ class _TesteMobileState extends State<TesteMobile> {
                                         width: 165,
                                         child: Text(player.nome!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),)
                                     ),
-                                    Text(player.partidasJogadas!.toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
+                                    Text(player.totalJogos!.toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
                                     Padding(
                                       padding: const EdgeInsets.only(right: 18.0),
                                       child: Text('${player.pontos}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),),

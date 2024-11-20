@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:volleyball_tournament_app/controller/data_controller.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
 import 'package:volleyball_tournament_app/model/tournament.dart';
-import 'package:volleyball_tournament_app/pages/tournament/init_tournament_dialog.dart';
+import 'package:volleyball_tournament_app/pages/tournament/widgets/init_tournament_dialog.dart';
 import '../players/player_dialog_actions.dart';
 
 class TournamentPage extends StatefulWidget {
@@ -36,8 +36,6 @@ class _TournamentPageState extends State<TournamentPage> {
             _tournament = res;
             playersList = _dataController.players;
           });
-        }else if(!res) {
-          Navigator.pop(context);
         }
       });
     });
@@ -141,7 +139,7 @@ class _TournamentPageState extends State<TournamentPage> {
                       children: [
                         Text('Vitórias ${player.vitorias} - ', style: const TextStyle(color: Colors.green, fontSize: 12),),
                         Text('Derrotas ${player.derrotas} - ', style: const TextStyle(color: Colors.red, fontSize: 12)),
-                        Text('Total - ${player.partidasJogadas} jogadas', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                        Text('Total - ${player.totalJogos} jogadas', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
                       ],
                     ),
                     trailing: Row(

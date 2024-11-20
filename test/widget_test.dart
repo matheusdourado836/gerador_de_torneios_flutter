@@ -13,178 +13,190 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:volleyball_tournament_app/model/partida.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
 
-List<List<Player>> listaDeDuplas = [];
-List<List<Player>> duplasQueJaJogaram = [];
+List<List<Player>> quartetsMistos = [];
 List<Partida> partidas = [];
-int modoDeJogo = 2;
 
 void main() {
-  test('a função deve montar as duplas corretamente sem repetir', () {
-    combinations(2);
-    gerar2x2game(1);
+  test('O teste deve montar quartetos sem repetir jogadores', () {
+    print('TEM ${players.length} JOGADORES');
+    List<Player> mulheres = players.where((p) => p.sex == 1).toList();
+    List<Player> homens = players.where((p) => p.sex == 0).toList();
+    print('${homens.length} HOMENS E ${mulheres.length} MULHERES');
+    //startGames();
+    try {
+      List<List<Player>> teams = generateTeams(minGames: 3);
+      // for (int i = 0; i < teams.length; i++) {
+      //   print("Time ${i + 1}: ${teams[i].map((p) => p.nome!).join(", ")}");
+      // }
 
-    // Limitar a 28 combinações
-    int limit = 28;
-    int count = 0;
+      partidas = generateMatches(teams);
 
-    for (var combo in listaDeDuplas) {
-      if (count < limit) {
-        print('Dupla ${count + 1}: ${combo[0].nome} e ${combo[1].nome}');
-        count++;
-      } else {
-        break;
-      }
+      // Exibir as partidas
+      // for (int i = 0; i < partidas.length; i++) {
+      //   var match = partidas[i];
+      //   print("Quarteto ${i + 1}:");
+      //   print("  Time 1: ${match.team1!.map((p) => p.nome).join(", ")}");
+      //   print("  Time 2: ${match.team2!.map((p) => p.nome).join(", ")}");
+      //   print("");
+      // }
+    }catch(e) {
+      print("Erro: $e");
     }
+
     for (int i = 0; i < partidas.length; i++) {
-      print('Partida ${i + 1}: ${partidas[i].team1!.map((p) => p.nome)} vs ${partidas[i].team2!.map((p) => p.nome)}');
+      print("Match ${i + 1}:");
+      print("Team 1: ${partidas[i].team1!.map((p) => p.nome).toList()}");
+      print("Team 2: ${partidas[i].team2!.map((p) => p.nome).toList()}");
     }
-    // for(var i = 0; i < 2; i++) {
-    //   generate2x2Game(i + 1);
-    // }
-    // for(var player in players) {
-    //   print('O JOGADOR ${player.nome} JOGOU ${player.partidasJogadas} PARTIDAS');
-    // }
 
-  });
+    Map<String, int> matchesCount = {};
+    for(Partida partida in partidas) {
+      final p = [...partida.team1!, ...partida.team2!];
+      for(var pp in p) {
+        matchesCount[pp.nome!] = (matchesCount[pp.nome] ?? 0) + 1;
+      }
+    }
 
-  test('A função deve montar os quartetos corretamente sem repetir onde cada jogador jogou 3x', () {
-    List<List<Player>> quartetsMistos = generate4x4Game(true);
-    print("Quartetos mistos:");
-    quartetsMistos.forEach((quartet) {
-      print(quartet.map((player) => player.nome).toList());
+    matchesCount.forEach((k, v) {
+      print('O JOGADOR $k JOGOU $v VEZES');
     });
+    //expect(checkIfHasEqualTeam(partidas), false);
   });
 }
 
-void gerar2x2game(int rodada) {
-  partidas = [];
-  Set<String> duplasUsadas = {};
+// void startGames() {
+//   quartetsMistos = generateQuartets(players, groupSize: 4, maxGroupsPerPlayer: 5);
+//   partidas = createMatches();
+//   checkIfHasEqualTeam(partidas);
+//   balanceMatches(partidas);
+// }
 
-  for (int i = 0; i < listaDeDuplas.length; i++) {
-    for (int j = i + 1; j < listaDeDuplas.length; j++) {
-      List<String> time1 = listaDeDuplas[i].map((dupla) => dupla.toString()).toList();
-      List<String> time2 = listaDeDuplas[j].map((dupla) => dupla.toString()).toList();
+List<List<Player>> generateTeams({int minGames = 3}) {
+  // Separar os jogadores por gênero
+  List<Player> males = players.where((p) => p.sex == 0).toList();
+  List<Player> females = players.where((p) => p.sex == 1).toList();
 
-      if (time1.toSet().intersection(time2.toSet()).isEmpty) {
-        // Cria chaves para as duplas
-        String chaveTime1 = time1.join(',');
-        String chaveTime2 = time2.join(',');
+  if (females.length > males.length * 2) {
+    throw Exception("Impossível formar times com no máximo 2 mulheres por time.");
+  }
 
-        // Verifica se as duplas já jogaram
-        if (!duplasUsadas.contains(chaveTime1) && !duplasUsadas.contains(chaveTime2)) {
-          partidas.add(Partida(team1: listaDeDuplas[i], team2: listaDeDuplas[j]));
-          duplasUsadas.add(chaveTime1);
-          duplasUsadas.add(chaveTime2);
+  // Controlar o número de jogos de cada jogador
+  //Map<String, int> playCounts = {for (var p in players) p.nome!: 0};
+  List<List<Player>> teams = [];
+
+  // Rotacionar jogadores para formar times
+  while (players.any((p) => (p.totalJogos ?? 0) < minGames)) {
+    males.shuffle(Random());
+    females.shuffle(Random());
+
+    List<Player> team = [];
+
+    // Selecionar até 2 mulheres
+    if (females.length >= 2) {
+      team.addAll(females.take(2));
+    } else if (females.isNotEmpty) {
+      team.addAll(females);
+    }
+
+    // Completar com homens
+    team.addAll(males.take(4 - team.length));
+
+    // Garantir que o time tenha exatamente 4 jogadores
+    if (team.length == 4) {
+      // Verificar se todos no time ainda precisam jogar
+      if (team.every((player) => (player.totalJogos ?? 0) < minGames)) {
+        // Atualizar a contagem de jogos dos jogadores
+        for (var player in team) {
+          player.totalJogos = (player.totalJogos ?? 0) + 1;
+        }
+        teams.add(team);
+
+        // Remover os jogadores do time atual temporariamente para próxima rotação
+        males.removeWhere((p) => team.contains(p));
+        females.removeWhere((p) => team.contains(p));
+      }
+    }
+
+    // Reabastecer as listas quando necessário
+    if (males.isEmpty && females.isEmpty) {
+      males = players.where((p) => p.sex == 0).toList();
+      females = players.where((p) => p.sex == 1).toList();
+    }
+  }
+
+  return teams;
+}
+
+List<Partida> generateMatches(List<List<Player>> teams) {
+  List<Partida> matches = [];
+  Map<String, int> playerAppearances = {};
+
+  // Inicializa o contador de participações
+  for (var team in teams) {
+    for (var player in team) {
+      playerAppearances[player.nome!] = 0;
+    }
+  }
+
+  for (int i = 0; i < teams.length; i++) {
+    for (int j = i + 1; j < teams.length; j++) {
+      List<Player> team1 = teams[i];
+      List<Player> team2 = teams[j];
+
+      // Verificar se há jogadores em comum
+      bool hasCommonPlayers = team1.any((player1) =>
+          team2.any((player2) => player1.nome == player2.nome));
+
+      if (hasCommonPlayers) continue;
+
+      // Verificar se adicionar a partida ultrapassaria o limite
+      bool exceedsLimit = false;
+
+      for (var player in [...team1, ...team2]) {
+        if (playerAppearances[player.nome]! >= 5) {
+          exceedsLimit = true;
+          break;
+        }
+      }
+
+      if (!exceedsLimit) {
+        matches.add(Partida(team1: team1, team2: team2));
+
+        // Atualiza as participações dos jogadores
+        for (var player in [...team1, ...team2]) {
+          playerAppearances[player.nome!] =
+              (playerAppearances[player.nome!] ?? 0) + 1;
         }
       }
     }
   }
+
+  return matches;
 }
-
-void combinations(int r) {
-  listaDeDuplas = [];
-  void combine(List<Player> combo, int start) {
-    if (combo.length == r) {
-      listaDeDuplas.add(List.from(combo));
-      return;
-    }
-
-    for (int i = start; i < players.length; i++) {
-      combo.add(players[i]);
-      combine(combo, i + 1);
-      combo.removeLast();
-    }
-  }
-
-  combine([], 0);
-}
-
-List<List<Player>> generate4x4Game(bool misto) {
-  List<List<Player>> quartets = [];
-  Map<String, int> playerCount = {};
-
-  // Filtra jogadores por sexo
-  List<Player> men = players.where((player) => player.sex == 0).toList();
-  List<Player> women = players.where((player) => player.sex == 1).toList();
-
-  // Gera combinações de quartetos
-  void backtrack(List<Player> currentQuartet, int startMen, int startWomen) {
-    if (currentQuartet.length == 4) {
-      // Adiciona apenas se nenhum jogador excedeu o limite
-      if (currentQuartet.every((player) => playerCount[player.nome!]! < 3)) {
-        quartets.add(List.from(currentQuartet));
-        for (var player in currentQuartet) {
-          playerCount[player.nome!] = playerCount[player.nome!]! + 1; // Incrementa a contagem
-        }
-      }
-      return;
-    }
-
-    // Adiciona homens
-    if (currentQuartet.length < 2 && startMen < men.length) {
-      currentQuartet.add(men[startMen]);
-      backtrack(currentQuartet, startMen + 1, startWomen);
-      currentQuartet.removeLast();
-    }
-
-    // Adiciona mulheres
-    if (currentQuartet.length < 4 && startWomen < women.length) {
-      currentQuartet.add(women[startWomen]);
-      backtrack(currentQuartet, startMen, startWomen + 1);
-      currentQuartet.removeLast();
-    }
-  }
-
-  if (misto) {
-    // Gera quartetos mistos com 2 homens e 2 mulheres
-    for (int i = 0; i < men.length; i++) {
-      for (int j = i + 1; j < men.length; j++) {
-        for (int k = 0; k < women.length; k++) {
-          for (int l = k + 1; l < women.length; l++) {
-            var quartet = [men[i], men[j], women[k], women[l]];
-            if (quartet.every((player) => playerCount[player.nome!] == null || playerCount[player.nome!]! < 3)) {
-              quartets.add(quartet);
-              for (var player in quartet) {
-                playerCount[player.nome!] = (playerCount[player.nome!] ?? 0) + 1; // Incrementa a contagem
-              }
-            }
-          }
-        }
-      }
-    }
-  } else {
-    // Gera quartetos não mistos (apenas homens)
-    backtrack([], 0, 0);
-  }
-
-  return quartets;
-}
-
-
 
 List<Player> players = [
   Player.withName('Matheus', 0),
-  Player.withName('Maria', 1),
+  //Player.withName('Maria', 1),
   Player.withName('Joao', 0),
-  Player.withName('Bia', 1),
+  //Player.withName('Bia', 1),
   Player.withName('Victor', 0),
-  Player.withName('Anna', 1),
+  //Player.withName('Anna', 1),
   Player.withName('Luis', 0),
-  Player.withName('Dani', 1),
-  Player.withName('Andre', 0),
+  //Player.withName('Dani', 1),
+  //Player.withName('Andre', 0),
   Player.withName('Clara', 1),
-  Player.withName('Fernando', 0),
+  //Player.withName('Fernando', 0),
   Player.withName('Juliana', 1),
-  Player.withName('Carlos', 0),
+  //Player.withName('Carlos', 0),
   Player.withName('Roberta', 1),
-  Player.withName('Gustavo', 0),
-  Player.withName('Sofia', 1),
+  //Player.withName('Gustavo', 0),
+  //Player.withName('Sofia', 1),
   Player.withName('Rafael', 0),
-  Player.withName('Larissa', 1),
+  //Player.withName('Larissa', 1),
   Player.withName('Thiago', 0),
-  Player.withName('Patricia', 1),
+  //Player.withName('Patricia', 1),
   Player.withName('Bruno', 0),
-  Player.withName('Jéssica', 1),
+  //Player.withName('Jéssica', 1),
   Player.withName('Diego', 0),
   Player.withName('Fernanda', 1),
   Player.withName('Eduardo', 0),
