@@ -99509,16 +99509,18 @@ A.aEm.prototype={
 $2(a,b){return B.ba},
 $S:34}
 A.aEw.prototype={
-$2(a,b){var s,r,q,p=null,o=this.a,n=o.w[b],m=n.a,l=n.b,k=A.a1("Jogo "+(b+1),p,p,p,p,B.aF,p,p)
+$2(a,b){var s,r,q=null,p=this.a,o=p.w[b],n=o.a,m=o.b,l=A.a1("Jogo "+(b+1),q,q,q,q,B.aF,q,q)
+n.toString
 m.toString
-l.toString
 s=t.p
-k=A.iw(A.a5(A.a([k,new A.rb(m,l,n,o.y,p)],s),B.f,B.k,B.e),1)
-r=A.cq(6)
-q=n.c!=null?B.bQ:B.bm
-r=A.e8(p,p,q,p,p,p,p,p,p,B.HU,p,p,p,p,p,p,new A.ce(r,B.v),p,p,p,p)
-q=n.c!=null?B.nJ:B.IN
-return A.aA(A.a([B.aM,k,A.cV(!1,q,p,p,p,p,p,p,new A.aE6(o,a,n,m,l,b),p,r),B.aM,A.cm(p,p,B.mf,p,p,new A.aE7(o,a,b),p,A.nM(p,B.cp,p,p,p,p,p,B.o,p,p,p,p,p,p,new A.ce(A.cq(6),B.v),p),p)],s),B.f,B.k,B.Z)},
+s=A.a([B.aM,A.iw(A.a5(A.a([l,new A.rb(n,m,o,p.y,q)],s),B.f,B.k,B.e),1)],s)
+if(p.y===!0){l=A.cq(6)
+r=o.c!=null?B.bQ:B.bm
+l=A.e8(q,q,r,q,q,q,q,q,q,B.HU,q,q,q,q,q,q,new A.ce(l,B.v),q,q,q,q)
+r=o.c!=null?B.nJ:B.IN
+s.push(A.cV(!1,r,q,q,q,q,q,q,new A.aE6(p,a,o,n,m,b),q,l))}s.push(B.aM)
+if(p.y===!0)s.push(A.cm(q,q,B.mf,q,q,new A.aE7(p,a,b),q,A.nM(q,B.cp,q,q,q,q,q,B.o,q,q,q,q,q,q,new A.ce(A.cq(6),B.v),q),q))
+return A.aA(s,B.f,B.k,B.Z)},
 $S:123}
 A.aE6.prototype={
 $0(){var s=this
