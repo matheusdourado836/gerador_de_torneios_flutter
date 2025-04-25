@@ -721,88 +721,90 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                                                 ],
                                               ),
                                             ),
-                                            ElevatedButton(
-                                              onPressed: () {
-                                                showDialog(
-                                                  context: context,
-                                                  builder: (context) => SetWinnerDialog(partida: partida)).then((res) {
-                                                    if (res is List) {
-                                                      setState(() {
-                                                        dataProvider.updatePlayerGames(team1, players);
-                                                        dataProvider.updatePlayerGames(team2, players);
-                                                        final partida = partidas[index];
-                                                        partida.finished = true;
-                                                        partida.vencedor = res[0] ? 0 : 1;
-                                                        partida.pontos = res[2];
-                                                        partidasHistory.add(partida);
+                                            if(_admin == true)
+                                              ElevatedButton(
+                                                onPressed: () {
+                                                  showDialog(
+                                                    context: context,
+                                                    builder: (context) => SetWinnerDialog(partida: partida)).then((res) {
+                                                      if (res is List) {
+                                                        setState(() {
+                                                          dataProvider.updatePlayerGames(team1, players);
+                                                          dataProvider.updatePlayerGames(team2, players);
+                                                          final partida = partidas[index];
+                                                          partida.finished = true;
+                                                          partida.vencedor = res[0] ? 0 : 1;
+                                                          partida.pontos = res[2];
+                                                          partidasHistory.add(partida);
 
-                                                        if (res[1]) {
-                                                          final vencedor = res[0] ? partida.team1 : partida.team2;
-                                                          final perdedor = res[0] ? partida.team2 : partida.team1;
+                                                          if (res[1]) {
+                                                            final vencedor = res[0] ? partida.team1 : partida.team2;
+                                                            final perdedor = res[0] ? partida.team2 : partida.team1;
 
-                                                          for (var player in vencedor ?? []) {
-                                                            final playerInList = players.firstWhere((p) => p.nome == player.nome);
-                                                            playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) + 1;
-                                                            playerInList.pontos = (playerInList.pontos ?? 0) + 1;
+                                                            for (var player in vencedor ?? []) {
+                                                              final playerInList = players.firstWhere((p) => p.nome == player.nome);
+                                                              playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) + 1;
+                                                              playerInList.pontos = (playerInList.pontos ?? 0) + 1;
+                                                            }
+
+                                                            updatePlayerRank(vencedor ?? []);
+                                                            updatePlayerRank(perdedor ?? []);
                                                           }
-
-                                                          updatePlayerRank(vencedor ?? []);
-                                                          updatePlayerRank(perdedor ?? []);
-                                                        }
-                                                      });
-                                                      saveData();
+                                                        });
+                                                        saveData();
+                                                      }
                                                     }
-                                                  }
-                                                );
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                                fixedSize: const Size(118, 40),
-                                                backgroundColor: partida.vencedor != null ? Colors.blue : const Color.fromRGBO(42, 35, 42, 1)
+                                                  );
+                                                },
+                                                style: ElevatedButton.styleFrom(
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                  fixedSize: const Size(118, 40),
+                                                  backgroundColor: partida.vencedor != null ? Colors.blue : const Color.fromRGBO(42, 35, 42, 1)
+                                                ),
+                                                child: partida.vencedor != null ? const Text('EDITAR') : const Text('FINALIZAR')
                                               ),
-                                              child: partida.vencedor != null ? const Text('EDITAR') : const Text('FINALIZAR')
-                                            ),
                                             const SizedBox(width: 8),
-                                            IconButton(
-                                              onPressed: () => showDialog(
-                                                context: context,
-                                                builder: (context) => const RemoveMatchDialog()
-                                              ).then((res) async {
-                                                if(res == true) {
-                                                  final partida = partidas[index];
-                                                  await dataProvider.removeSingle('partidas', partida.toJson(), dataProvider.tournament!.id!);
-                                                  setState(() {
-                                                    if(partida.finished == true) {
-                                                      final team1 = partida.team1;
-                                                      final team2 = partida.team2;
-                                                      for(var player in team1 ?? []) {
-                                                        final playerInList = players.firstWhere((p) => p.nome == player.nome);
-                                                        playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) - 1;
-                                                        if(partida.vencedor == 0) {
-                                                          playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) - 1;
+                                            if(_admin == true)
+                                              IconButton(
+                                                onPressed: () => showDialog(
+                                                  context: context,
+                                                  builder: (context) => const RemoveMatchDialog()
+                                                ).then((res) async {
+                                                  if(res == true) {
+                                                    final partida = partidas[index];
+                                                    await dataProvider.removeSingle('partidas', partida.toJson(), dataProvider.tournament!.id!);
+                                                    setState(() {
+                                                      if(partida.finished == true) {
+                                                        final team1 = partida.team1;
+                                                        final team2 = partida.team2;
+                                                        for(var player in team1 ?? []) {
+                                                          final playerInList = players.firstWhere((p) => p.nome == player.nome);
+                                                          playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) - 1;
+                                                          if(partida.vencedor == 0) {
+                                                            playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) - 1;
+                                                          }
                                                         }
-                                                      }
-                                                      for(var player in team2 ?? []) {
-                                                        final playerInList = players.firstWhere((p) => p.nome == player.nome);
-                                                        playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) - 1;
-                                                        if(partida.vencedor == 1) {
-                                                          playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) - 1;
+                                                        for(var player in team2 ?? []) {
+                                                          final playerInList = players.firstWhere((p) => p.nome == player.nome);
+                                                          playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) - 1;
+                                                          if(partida.vencedor == 1) {
+                                                            playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) - 1;
+                                                          }
                                                         }
+                                                        updatePlayerRank([...team1 ?? [], ...team2 ?? []]);
                                                       }
-                                                      updatePlayerRank([...team1 ?? [], ...team2 ?? []]);
-                                                    }
-                                                    partidas.remove(partida);
-                                                  });
-                                                  await saveData(setMatches: false);
-                                                }
-                                              }),
-                                              style: IconButton.styleFrom(
-                                                backgroundColor: Colors.red,
-                                                foregroundColor: Colors.white,
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))
-                                              ),
-                                              icon: const Icon(Icons.delete)
-                                            )
+                                                      partidas.remove(partida);
+                                                    });
+                                                    await saveData(setMatches: false);
+                                                  }
+                                                }),
+                                                style: IconButton.styleFrom(
+                                                  backgroundColor: Colors.red,
+                                                  foregroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))
+                                                ),
+                                                icon: const Icon(Icons.delete)
+                                              )
                                           ],
                                         );
                                       },
