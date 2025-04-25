@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:volleyball_tournament_app/shared/player_info_widget.dart';
 import '../../controller/data_controller.dart';
 import '../../helpers/remover_acentos.dart';
 import '../../model/player.dart';
 import '../../model/tournament.dart';
 import '../players/player_dialog_actions.dart';
-import 'widgets/init_tournament_dialog.dart';
 
 class TournamentMobilePage extends StatefulWidget {
   const TournamentMobilePage({super.key});
@@ -33,16 +33,8 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
       itemBuilder: (context, index) {
         final player = players[index];
 
-        return ListTile(
-          title: Text(player.nome ?? ''),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-          subtitle: Row(
-            children: [
-              Text('Vitórias ${player.vitorias}', style: const TextStyle(color: Colors.green, fontSize: 12),),
-              const SizedBox(width: 8,),
-              Text('Derrotas ${player.derrotas}', style: const TextStyle(color: Colors.red, fontSize: 12)),
-            ],
-          ),
+        return PlayerInfoWidget(
+          player: player,
           trailing: Transform.scale(
             scale: .7,
             child: ChoiceChip(
@@ -58,7 +50,7 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
               label: const Text('CHECK-IN', style: TextStyle(color: Colors.white)),
               backgroundColor: const Color.fromRGBO(42, 35, 42, 1),
             ),
-          ),
+          )
         );
       },
     ),
@@ -66,20 +58,12 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
 
   @override
   void initState() {
+    _dataController = Provider.of<DataController>(context, listen: false);
+    _tournament = _dataController.tournament;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      showDialog(context: context, barrierDismissible: false, builder: (context) => const InitTournamentDialogMobile())
-          .then((res) async {
-        if(res is Tournament) {
-          _dataController = Provider.of<DataController>(context, listen: false);
-          if(_dataController.players.isEmpty) {
-            await _dataController.getPlayers();
-            _dataController.players.sort((a, b) => a.nome!.compareTo(b.nome!));
-          }
-          setState(() => _tournament = res);
-        }else if(!(res ?? false)) {
-          Navigator.pop(context);
-        }
-      });
+      if(_dataController.players.isEmpty) {
+        _dataController.getPlayers().whenComplete(() => _dataController.players.sort((a, b) => a.nome!.compareTo(b.nome!)));
+      }
     });
     super.initState();
   }
@@ -127,12 +111,12 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: _tournament == null ? Container() : const Text('Adicionar jogadores'),
+        title: const Text('Selecionar jogadores'),
         actions: [
           TextButton.icon(
               onPressed: () => showDialog(
                   context: context,
-                  builder: (context) => const AddPlayerDialog()
+                  builder: (context) => const AddPlayerDialog(isTournament: true)
               ).then((res) {
                 if(res is Player) {
                   setState(() {
@@ -145,73 +129,71 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
           )
         ],
       ),
-      body: _tournament == null ? Container()
-          : Consumer<DataController>(
-              builder: (context, value, _) {
-                if(value.loading) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
+      body: Consumer<DataController>(
+        builder: (context, value, _) {
+          if(value.loading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-                if(value.players.isEmpty) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text('Nenhum jogador disponível...'),
-                      ElevatedButton.icon(onPressed: () {}, label: const Text('Adicionar jogador'), icon: const Icon(Icons.add),)
-                    ],
-                  );
-                }
+          if(value.players.isEmpty) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('Nenhum jogador disponível...'),
+                ElevatedButton.icon(onPressed: () {}, label: const Text('Adicionar jogador'), icon: const Icon(Icons.add),)
+              ],
+            );
+          }
 
-                return Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      child: TextField(
-                        controller: _controller,
-                        onChanged: (newValue) {
-                          if(newValue.isEmpty) {
-                            setState(() {
-                              searchList = [];
-                              value.players.sort((a, b) => a.nome!.compareTo(b.nome!));
-                            });
-                          }else {
-                            final querySemAcento = removerAcentos(newValue.toLowerCase());
-                            setState(() {
-                              searchList = value.players.where((player) => removerAcentos(player.nome!.toLowerCase()).startsWith(querySemAcento) || player.nome!.toLowerCase().contains(querySemAcento)).toList();
-                            });
-                          }
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: TextField(
+                  controller: _controller,
+                  onChanged: (newValue) {
+                    if(newValue.isEmpty) {
+                      setState(() {
+                        searchList = [];
+                        value.players.sort((a, b) => a.nome!.compareTo(b.nome!));
+                      });
+                    }else {
+                      final querySemAcento = removerAcentos(newValue.toLowerCase());
+                      setState(() {
+                        searchList = value.players.where((player) => removerAcentos(player.nome!.toLowerCase()).startsWith(querySemAcento) || player.nome!.toLowerCase().contains(querySemAcento)).toList();
+                      });
+                    }
+                  },
+                  decoration: InputDecoration(
+                      hintText: 'Pesquisar jogador...',
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          _controller.clear();
+                          setState(() => searchList = []);
                         },
-                        decoration: InputDecoration(
-                            hintText: 'Pesquisar jogador...',
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                _controller.clear();
-                                setState(() => searchList = []);
-                              },
-                              icon: const Icon(Icons.close)
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(8)
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(8)
-                            ),
-                            prefixIcon: const Icon(Icons.search)
-                        ),
+                        icon: const Icon(Icons.close)
                       ),
-                    ),
-                    if(searchList.isNotEmpty)
-                      playersList(searchList)
-                    else
-                      playersList(value.players)
-
-                  ],
-                );
-              },
+                      enabledBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(8)
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(8)
+                      ),
+                      prefixIcon: const Icon(Icons.search)
+                  ),
+                ),
+              ),
+              if(searchList.isNotEmpty)
+                playersList(searchList)
+              else
+                playersList(value.players)
+            ],
+          );
+        },
       ),
       floatingActionButton: addedPlayers == 0 ? null
           : InkWell(
@@ -241,7 +223,6 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
                                 if(readyPlayers.isNotEmpty) {
                                   _tournament!.jogadores = readyPlayers;
                                   _tournament!.partidas ??= [];
-                                  _dataController.tournament = _tournament;
                                   _dataController.salvarTorneio().whenComplete(() {
                                     GoRouter.of(context).go('/tournament/${_tournament!.nomeTorneio!}/match');
                                   });

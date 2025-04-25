@@ -16,15 +16,19 @@ class HomePage extends StatelessWidget {
           children: [
             Image.asset('assets/images/logo.png', width: 250, height: 250,),
             const SizedBox(height: 40),
-            ElevatedButton.icon(onPressed: () => GoRouter.of(context).go('/tournament'), label: const Text('Iniciar torneio'), icon: const Icon(Icons.sports_volleyball),),
+            ElevatedButton.icon(onPressed: () => GoRouter.of(context).go('/init_tournament'), label: const Text('Iniciar torneio'), icon: const Icon(Icons.sports_volleyball),),
             const SizedBox(height: 24),
             ElevatedButton.icon(
                 onPressed: () => showDialog(
                     context: context,
                     builder: (context) => const _CodeDialog()
                 ).then((res) {
-                  if(res != null && res is String) {
-                    GoRouter.of(context).go('/tournament/$res/match');
+                  if(res != null && res is Map<String, dynamic>) {
+                    if(res["mode"] == 'Chaves') {
+                      GoRouter.of(context).go('/tournament/${res["nome"]}/match?m=keys');
+                    }else {
+                      GoRouter.of(context).go('/tournament/${res["nome"]}/match');
+                    }
                   }
                 }),
                 label: const Text('Entrar em um torneio'),
@@ -51,7 +55,7 @@ class _CodeDialog extends StatefulWidget {
 
 class _CodeDialogState extends State<_CodeDialog> {
   final TextEditingController _controller = TextEditingController();
-  final ValueNotifier<bool> _error = ValueNotifier(false);
+  final ValueNotifier<String> _error = ValueNotifier('');
 
   @override
   Widget build(BuildContext context) {
@@ -67,11 +71,11 @@ class _CodeDialogState extends State<_CodeDialog> {
                 TextField(
                   controller: _controller,
                   decoration: const InputDecoration(
-                      hintText: 'Digite o código aqui...'
+                      hintText: 'Digite o código aqui...',
                   ),
                 ),
-                if(_error.value)
-                  const Text('torneio não encontrado', style: TextStyle(color: Colors.red))
+                if(_error.value.isNotEmpty)
+                  Text(_error.value, style: TextStyle(color: Colors.red))
               ],
             );
           }
@@ -80,11 +84,15 @@ class _CodeDialogState extends State<_CodeDialog> {
         TextButton(
           onPressed: () async {
             final dataProvider = Provider.of<DataController>(context, listen: false);
-            final nomeTorneio = await dataProvider.getTorneioByCode(code: _controller.text);
-            if(nomeTorneio != null) {
-              Navigator.pop(context, nomeTorneio);
+            final torneio = await dataProvider.getTorneioByCode(code: _controller.text);
+            if(torneio != null) {
+              if(torneio['ativo'] == false) {
+                _error.value = 'Esse torneio não está ativo';
+                return;
+              }
+              Navigator.pop(context, torneio);
             }else {
-              _error.value = true;
+              _error.value = 'Torneio não encontrado';
             }
           },
           child: const Text('Entrar')

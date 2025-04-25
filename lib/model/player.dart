@@ -1,5 +1,6 @@
 class Player {
   String? id;
+  String? teamId;
   DateTime? createdAt;
   String? nome;
   int? sex;
@@ -12,6 +13,7 @@ class Player {
 
   Player({
     this.id,
+    this.teamId,
     this.createdAt,
     this.nome,
     this.sex,
@@ -40,6 +42,7 @@ class Player {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'teamId': teamId,
     'createdAt': createdAt?.toIso8601String(),
     'nome': nome,
     'sex': sex,
@@ -47,11 +50,13 @@ class Player {
     'vitorias': vitorias,
     'derrotas': derrotas,
     'pontosAtuais': pontosAtuais,
+    'jogosFinalizados': jogosFinalizados,
     'pontos': pontos,
   };
 
   factory Player.fromJson(Map<String, dynamic> json) => Player(
     id: json['id'],
+    teamId: json['teamId'],
     createdAt: json['createdAt'] != null
         ? DateTime.parse(json['createdAt'])
         : null,
@@ -63,6 +68,33 @@ class Player {
     vitorias: json['vitorias'],
     derrotas: json['derrotas'],
     pontos: json['pontos'],
+    jogosFinalizados: json['jogosFinalizados'],
     pontosAtuais: json['pontosAtuais'],
   );
+}
+
+class Team {
+  String? id;
+  List<Player> players;
+  int pontos;
+
+  Team({
+    this.id,
+    required this.players,
+    this.pontos = 0
+  });
+
+  factory Team.fromJson(Map<String, dynamic> json) => Team(
+    id: json['id'],
+    players: json['players'] != null
+        ? (json['players'] as List).map((player) => Player.fromJson(player)).toList()
+        : [],
+    pontos: json['pontos']
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "players": players.map((p) => p.toJson()).toList(),
+    "pontos": pontos
+  };
 }

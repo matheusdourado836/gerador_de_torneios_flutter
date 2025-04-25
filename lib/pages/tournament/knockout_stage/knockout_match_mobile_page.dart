@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:volleyball_tournament_app/controller/data_controller.dart';
 import 'package:volleyball_tournament_app/model/categoria.dart';
 import '../../../model/partida.dart';
 import '../../../model/player.dart';
-import '../matches_mobile_page.dart';
+import '../matches_categoria/matches_mobile_page.dart';
 import '../widgets/set_winner_mobile_dialog.dart';
 
 class KnockoutMatchMobilePage extends StatefulWidget {
-  final bool admin;
-  const KnockoutMatchMobilePage({super.key, required this.admin});
+  const KnockoutMatchMobilePage({super.key});
 
   @override
   State<KnockoutMatchMobilePage> createState() => _KnockoutMatchMobilePageState();
@@ -64,7 +64,6 @@ class _KnockoutMatchMobilePageState extends State<KnockoutMatchMobilePage> {
                   return _MatchWidget(
                     categoria: categorias[index],
                     constraints: constraints,
-                    admin: widget.admin,
                   );
                 },
               ),
@@ -79,8 +78,7 @@ class _KnockoutMatchMobilePageState extends State<KnockoutMatchMobilePage> {
 class _MatchWidget extends StatefulWidget {
   final Categoria categoria;
   final BoxConstraints constraints;
-  final bool admin;
-  const _MatchWidget({required this.categoria, required this.constraints, required this.admin});
+  const _MatchWidget({required this.categoria, required this.constraints});
 
   @override
   State<_MatchWidget> createState() => _MatchWidgetState();
@@ -97,6 +95,17 @@ class _MatchWidgetState extends State<_MatchWidget> {
   int qtdRounds = 0;
   int currentRound = 0;
   int currentMatch = 0;
+
+  Future<bool> checkIfUserIsAlreadyLoggedIn() async {
+    final dataProvider = Provider.of<DataController>(context, listen: false);
+    final tournamentName = dataProvider.tournament!.nomeTorneio;
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if(prefs.getString('admin')?.isEmpty ?? true) {
+      return false;
+    }
+
+    return await dataProvider.checkPass(nomeDoTorneio: tournamentName!, userPass: prefs.getString('admin')!);
+  }
 
   void generate2x2game({bool misto = false}) {
     List<Partida> innerPartidas = [];
@@ -189,120 +198,131 @@ class _MatchWidgetState extends State<_MatchWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return PageView.builder(
-      controller: _controller,
-      itemCount: partidas.length,
-      itemBuilder: (context, index) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const Spacer(),
-                Text('Rodada ${currentRound + 1}', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
-                Padding(
-                  padding: const EdgeInsets.only(left: 24.0, right: 8),
-                  child: Text('${partidas.where((p) => p.finished == true).length} jogos finalizados'),
-                )
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                    onPressed: () => _controller.previousPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
-                    icon: const Icon(Icons.arrow_back_ios)
-                ),
-                Text(
-                    'Jogo ${currentMatch + 1} de ${partidas.length}',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge
-                ),
-                IconButton(
-                    onPressed: () => _controller.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
-                    icon: const Icon(Icons.arrow_forward_ios)
-                ),
-              ],
-            ),
-            SizedBox(
-              width: widget.constraints.maxWidth,
-              height: widget.constraints.maxHeight * .8,
-              child: PageView.builder(
-                controller: _controller,
-                onPageChanged: (page) => setState(() => currentMatch = page),
-                itemCount: partidas.length,
-                itemBuilder: (context, index) {
-                  final team1 = partidas[index].team1;
-                  final team2 = partidas[index].team2;
+    return FutureBuilder(
+      future: checkIfUserIsAlreadyLoggedIn(),
+      builder: (context, snapshot) {
+        if(snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
 
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Column(
+        return PageView.builder(
+          controller: _controller,
+          itemCount: partidas.length,
+          itemBuilder: (context, index) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const Spacer(),
+                    Text('Rodada ${currentRound + 1}', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 24.0, right: 8),
+                      child: Text('${partidas.where((p) => p.finished == true).length} jogos finalizados'),
+                    )
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                        onPressed: () => _controller.previousPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
+                        icon: const Icon(Icons.arrow_back_ios)
+                    ),
+                    Text(
+                        'Jogo ${currentMatch + 1} de ${partidas.length}',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge
+                    ),
+                    IconButton(
+                        onPressed: () => _controller.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
+                        icon: const Icon(Icons.arrow_forward_ios)
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  width: widget.constraints.maxWidth,
+                  height: widget.constraints.maxHeight * .8,
+                  child: PageView.builder(
+                    controller: _controller,
+                    onPageChanged: (page) => setState(() => currentMatch = page),
+                    itemCount: partidas.length,
+                    itemBuilder: (context, index) {
+                      final team1 = partidas[index].team1;
+                      final team2 = partidas[index].team2;
+
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          if(partidas[index].vencedor != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 24.0),
-                              child: Text(
-                                'Vencedor: ${partidas[index].vencedor == 0 ? 'TIME A' : 'TIME B'}',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                            )
-                        ],
-                      ),
-                      PartidaItem(
-                        team1: team1!,
-                        team2: team2!,
-                        partida: partidas[index],
-                        admin: widget.admin,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: ElevatedButton(
-                            onPressed: () {
-                              showDialog(
-                                  context: context,
-                                  builder: (context) => SetWinnerMobileDialog(partida: partidas[index])).then((res) {
-                                _controller.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
-                                if(res is List) {
-                                  setState(() {
-                                    updatePlayerGames(team1);
-                                    updatePlayerGames(team2);
-                                    partidas[index].finished = true;
-                                    partidas[index].vencedor = res[0] ? 0 : 1;
-                                    if(res[1]) {
-                                      if(res[0]) {
-                                        for(var player in team1) {
-                                          player.pontosAtuais = (player.pontosAtuais ?? 0) + 1;
+                          Column(
+                            children: [
+                              if(partidas[index].vencedor != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 24.0),
+                                  child: Text(
+                                    'Vencedor: ${partidas[index].vencedor == 0 ? 'TIME A' : 'TIME B'}',
+                                    style: Theme.of(context).textTheme.titleLarge,
+                                  ),
+                                )
+                            ],
+                          ),
+                          PartidaItem(
+                            team1: team1!,
+                            team2: team2!,
+                            partida: partidas[index],
+                            admin: snapshot.data!,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: ElevatedButton(
+                                onPressed: () {
+                                  showDialog(
+                                      context: context,
+                                      builder: (context) => SetWinnerMobileDialog(partida: partidas[index])).then((res) {
+                                    _controller.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
+                                    if(res is List) {
+                                      setState(() {
+                                        updatePlayerGames(team1);
+                                        updatePlayerGames(team2);
+                                        partidas[index].finished = true;
+                                        partidas[index].vencedor = res[0] ? 0 : 1;
+                                        if(res[1]) {
+                                          if(res[0]) {
+                                            for(var player in team1) {
+                                              player.pontosAtuais = (player.pontosAtuais ?? 0) + 1;
+                                            }
+                                          }else {
+                                            for(var player in team2) {
+                                              player.pontosAtuais = (player.pontosAtuais ?? 0) + 1;
+                                            }
+                                          }
                                         }
-                                      }else {
-                                        for(var player in team2) {
-                                          player.pontosAtuais = (player.pontosAtuais ?? 0) + 1;
-                                        }
-                                      }
+                                      });
                                     }
-                                  });
-                                }
-                              }
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                fixedSize: const Size(118, 30),
-                                backgroundColor: partidas[index].vencedor != null ? Colors.blue : const Color.fromRGBO(42, 35, 42, 1)
+                                  }
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                    fixedSize: const Size(118, 30),
+                                    backgroundColor: partidas[index].vencedor != null ? Colors.blue : const Color.fromRGBO(42, 35, 42, 1)
+                                ),
+                                child: partidas[index].vencedor != null ? const Text('EDITAR') : const Text('MARCAR RESULTADO')
                             ),
-                            child: partidas[index].vencedor != null ? const Text('EDITAR') : const Text('MARCAR RESULTADO')
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
         );
-      },
+      }
     );
   }
 }

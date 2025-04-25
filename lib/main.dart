@@ -34,6 +34,7 @@ class MyApp extends StatelessWidget {
       routeInformationProvider: AppRouter.router.routeInformationProvider,
       routerDelegate: AppRouter.router.routerDelegate,
       title: 'UTAC Torneios APP',
+      debugShowCheckedModeBanner: false,
       scrollBehavior: MyCustomScrollBehavior(),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: const [Locale('pt', 'BR')],
@@ -52,6 +53,7 @@ class MyApp extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color.fromRGBO(42, 35, 42, 1),
             foregroundColor: Colors.white,
+            iconColor: Colors.white,
             fixedSize: const Size(250, 50)
           )
         )

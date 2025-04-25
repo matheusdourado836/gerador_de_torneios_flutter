@@ -18,12 +18,12 @@ class _SetWinnerMobileDialogState extends State<SetWinnerMobileDialog> {
 
   ButtonStyle selectedStyle() => ElevatedButton.styleFrom(
       backgroundColor: const Color.fromRGBO(42, 35, 42, 1),
-      minimumSize: const Size(250, 100)
+    minimumSize: const Size(100, 130)
   );
 
   ButtonStyle unselectedStyle() => ElevatedButton.styleFrom(
     backgroundColor: Colors.black38,
-    minimumSize: const Size(240, 90),
+      minimumSize: const Size(100, 110)
   );
 
   TextStyle selectedTextStyle() => const TextStyle(
@@ -49,6 +49,7 @@ class _SetWinnerMobileDialogState extends State<SetWinnerMobileDialog> {
                   onPressed: () => setState(() => _timeA = true),
                   style: _timeA ? selectedStyle() : unselectedStyle(),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: widget.partida.team1!.map((team) => Text(
                       team.nome!,
                       textAlign: TextAlign.center,
@@ -61,6 +62,7 @@ class _SetWinnerMobileDialogState extends State<SetWinnerMobileDialog> {
                 onPressed: () => setState(() => _timeA = false),
                 style: !_timeA ? selectedStyle() : unselectedStyle(),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: widget.partida.team2!.map((team) => Text(
                     team.nome!,
                     textAlign: TextAlign.center,

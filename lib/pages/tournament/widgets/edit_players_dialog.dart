@@ -17,18 +17,17 @@ class _EditPlayersDialogState extends State<EditPlayersDialog> {
   List<Player> innerList = [];
   List<Player> availablePlayers = [];
   List<Player> originalTeam = [];
+  List<Player> team1 = [];
 
   @override
   void initState() {
     super.initState();
     dataProvider = Provider.of<DataController>(context, listen: false);
+    team1 = List<Player>.from(widget.team);
     innerList = dataProvider.tournament!.jogadores!;
     originalTeam = widget.team;
 
-    // Filtrar jogadores disponíveis e adicionar o jogador atual, evitando duplicatas
-    availablePlayers = innerList.where((player) =>
-      !widget.otherTeam.contains(player)
-    ).toList();
+    availablePlayers = innerList.where((player) => !widget.otherTeam.contains(player)).toList();
   }
 
   @override
@@ -39,18 +38,18 @@ class _EditPlayersDialogState extends State<EditPlayersDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for(var i = 0; i < widget.team.length; i++)
+          for(var i = 0; i < team1.length; i++)
             DropdownButton<String>(
-              hint: Text(innerList.firstWhere((p) => p.nome == widget.team[i].nome).nome!),
+              hint: Text(innerList.firstWhere((p) => p.nome == team1[i].nome).nome!),
               items: availablePlayers.map((player) => DropdownMenuItem<String>(
                 value: player.nome,
                 child: Text('${player.nome!} - ${player.totalJogos ?? 0} jogos'),
               )).toList(),
               onChanged: (value) {
-                availablePlayers.add(innerList.firstWhere((p) => p.nome == widget.team[i].nome));
+                availablePlayers.add(innerList.firstWhere((p) => p.nome == team1[i].nome));
                 final newPlayer = availablePlayers.firstWhere((p) => p.nome == value);
-                widget.team.removeAt(i);
-                widget.team.add(newPlayer);
+                team1.removeAt(i);
+                team1.add(newPlayer);
                 setState(() {});
               },
             ),
@@ -59,9 +58,11 @@ class _EditPlayersDialogState extends State<EditPlayersDialog> {
       actions: [
         TextButton(
           onPressed: () {
+            widget.team.clear();
+            widget.team.addAll(team1);
             for(Player player in originalTeam) {
               if(!widget.team.contains(player)) {
-                player.totalJogos = (player.totalJogos ?? 0) - 1;
+                player.totalJogos = (player.totalJogos ?? 1) - 1;
               }
             }
 

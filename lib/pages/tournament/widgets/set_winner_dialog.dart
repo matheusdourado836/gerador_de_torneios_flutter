@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:volleyball_tournament_app/model/partida.dart';
 
 class SetWinnerDialog extends StatefulWidget {
@@ -10,6 +11,8 @@ class SetWinnerDialog extends StatefulWidget {
 }
 
 class _SetWinnerDialogState extends State<SetWinnerDialog> {
+  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _controller2 = TextEditingController();
   bool _timeA = false;
   bool _setPoints = true;
 
@@ -77,11 +80,52 @@ class _SetWinnerDialogState extends State<SetWinnerDialog> {
                 }
               )
             ],
-          )
+          ),
+          if(_setPoints)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('PLACAR (opcional)'),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 30,
+                      height: 40,
+                      child: TextField(
+                        controller: _controller,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        decoration: const InputDecoration(hintText: '0'),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('X'),
+                    ),
+                    SizedBox(
+                      width: 30,
+                      height: 40,
+                      child: TextField(
+                        controller: _controller2,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        decoration: const InputDecoration(hintText: '0'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            )
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, [_timeA, _setPoints]), child: const Text('Salvar')),
+        TextButton(onPressed: () => Navigator.pop(context, [_timeA, _setPoints, '${_controller.text} X ${_controller2.text}']), child: const Text('Salvar')),
       ],
     );
   }

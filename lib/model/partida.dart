@@ -40,3 +40,17 @@ class Partida {
     );
   }
 }
+
+class PartidaChave {
+  String? nome;
+  List<Partida>? partidas;
+
+  PartidaChave({this.nome, this.partidas});
+
+  factory PartidaChave.fromJson(Map<String, dynamic> json) => PartidaChave(
+    nome: json['nome'],
+    partidas: json['partidasChave'] != null
+      ? (json['partidasChave'] as List).map((p) => Partida.fromJson(p)).toList()
+      : null
+  );
+}

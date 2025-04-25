@@ -11,6 +11,7 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dataProvider = Provider.of<DataController>(context, listen: false);
+    String? mode = dataProvider.tournament!.modelo == 'Chaves' ? dataProvider.tournament!.modelo : '';
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -22,7 +23,7 @@ class SettingsPage extends StatelessWidget {
           ListTile(
             onTap: () => showDialog(
                 context: context,
-                builder: (context) => const AddPlayerDialog()
+                builder: (context) => const AddPlayerDialog(isTournament: true)
             ).then((res) {
               if(res is Player) {
                 dataProvider.tournament!.jogadores!.add(res);
@@ -34,7 +35,20 @@ class SettingsPage extends StatelessWidget {
             trailing: const Icon(Icons.add, size: 22),
           ),
           ListTile(
-            onTap: () => context.go(context.namedLocation('fase2', pathParameters: {"nomeDoTorneio": dataProvider.tournament!.nomeTorneio!})),
+            onTap: () {
+              for(var categoria in dataProvider.tournament?.categorias ?? []) {
+                for(Player jogador in categoria.players ?? []) {
+                  jogador.pontosAtuais = 0;
+                  jogador.jogosFinalizados = 0;
+                }
+              }
+              context.go(context.namedLocation(
+                  'fase2',
+                  queryParameters: (mode?.isEmpty ?? true) ? {} : {"m": "keys"},
+                  pathParameters: {"nomeDoTorneio": dataProvider.tournament!.nomeTorneio!}
+                )
+              );
+            },
             contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             title: const Text('Ir para a próxima fase'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 18,),
@@ -43,8 +57,21 @@ class SettingsPage extends StatelessWidget {
             onTap: () => showDialog(
               context: context,
               builder: (context) => AlertDialog(
+                alignment: Alignment.center,
                 title: const Text('Seu código', textAlign: TextAlign.center,),
-                content: Text(dataProvider.tournament!.codigo!, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 20),),
+                content: SizedBox(
+                  height: 40,
+                  width: 120,
+                  child: Center(
+                    child: SelectionArea(
+                      child: Text(
+                        dataProvider.tournament!.codigo!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 20),
+                      ),
+                    ),
+                  ),
+                ),
               )
             ),
             contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -58,6 +85,7 @@ class SettingsPage extends StatelessWidget {
             ).then((res) {
               if(res ?? false) {
                 dataProvider.cancelarTorneio(nomeDoTorneio: dataProvider.tournament!.nomeTorneio!).whenComplete(() => Navigator.pop(context));
+                context.go('/');
               }
             }),
             contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
