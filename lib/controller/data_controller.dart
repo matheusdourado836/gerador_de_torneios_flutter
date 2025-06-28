@@ -132,12 +132,10 @@ class DataController extends ChangeNotifier {
   }
 
   Future<void> getClassifiedPlayers() async {
-    loading = true;
-    notifyListeners();
     tournament!.timesClassificados =  await _service.getClassifiedPlayers(torneioId: tournament!.id!);
-    loading = false;
-    notifyListeners();
   }
+
+  Future<void> resetClassifiedTeams({required String torneioId}) async => await _service.resetClassifiedTeams(torneioId: torneioId);
 
   Future<void> addToClassifiedTeams({required List<Player> players}) async {
     return await _service.addToClassifiedTeams(torneioId: tournament!.id!, players: players);
@@ -231,8 +229,8 @@ class DataController extends ChangeNotifier {
 
   void generate2x2Combinations() {
     listaDeCombinacoes = [];
-    List<Player> players = tournament!.jogadores!;
-    bool misto = tournament!.misto ?? false;
+    List<Player> players = tournament?.jogadores ?? [];
+    bool misto = tournament?.misto ?? false;
 
     Set<String> generatedPairs = {};
 
@@ -256,8 +254,8 @@ class DataController extends ChangeNotifier {
           Player p1 = players[i];
           Player p2 = players[j];
 
-          String pairKey = '${p1.nome!.trim().toLowerCase()}-${p2.nome!.trim().toLowerCase()}';
-          String pairKeyReversed = '${p2.nome!.trim().toLowerCase()}-${p1.nome!.trim().toLowerCase()}';
+          String pairKey = '${(p1.nome ?? '').trim().toLowerCase()}-${(p2.nome ?? '').trim().toLowerCase()}';
+          String pairKeyReversed = '${(p2.nome ?? '').trim().toLowerCase()}-${(p1.nome ?? '').trim().toLowerCase()}';
           if (!generatedPairs.contains(pairKey) && !generatedPairs.contains(pairKeyReversed)) {
             listaDeCombinacoes.add([p1, p2]);
             generatedPairs.add(pairKey);
@@ -280,8 +278,8 @@ class DataController extends ChangeNotifier {
       return nomeA.compareTo(nomeB);
     });
 
-    final mapa = getMapaDeDuplasComoLista();
-    final resultado = verificarDuplasIncompletas(mapa, tournament!.jogadores!);
+    // final mapa = getMapaDeDuplasComoLista();
+    // final resultado = verificarDuplasIncompletas(mapa, tournament!.jogadores!);
   }
 
   Map<String, Set<String>> getMapaDeDuplas() {
@@ -501,7 +499,7 @@ class DataController extends ChangeNotifier {
                     final playerData = jogadores.firstWhere((p) => p.nome == player);
                     return DropdownMenuItem(
                       value: player,
-                      child: Text('$player - ${playerData.totalJogos ?? 0} jogos'),
+                      child: Text('$player - ${playerData.jogosFinalizados ?? 0} jogos'),
                     );
                   }).toList(),
                   onChanged: (newValue) {
@@ -547,7 +545,7 @@ class DataController extends ChangeNotifier {
             TextButton(
               onPressed: () {
                 final randomPartida = playersBySide == 2
-                    ? generateRandom2x2Match(tournament!.jogadores ?? [])
+                    ? generateRandom2x2Match(jogadores)
                     : generateRandomMatch();
                 Navigator.pop(context, randomPartida); // ✅ retorna a aleatória
               },

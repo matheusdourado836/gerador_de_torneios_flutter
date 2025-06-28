@@ -1,16 +1,15 @@
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:volleyball_tournament_app/controller/data_controller.dart';
+import 'package:volleyball_tournament_app/helpers/score_widget_mobile.dart';
 import 'package:volleyball_tournament_app/pages/home_page.dart';
 import 'package:volleyball_tournament_app/pages/init_tournament/init_tournament_page.dart';
 import 'package:volleyball_tournament_app/pages/players/players_page_mobile.dart';
-import 'package:volleyball_tournament_app/pages/tournament/knockout_stage/knockout_match_mobile_page.dart';
-import 'package:volleyball_tournament_app/pages/tournament/knockout_stage/knockout_stage_page.dart';
-import 'package:volleyball_tournament_app/pages/tournament/knockout_stage_keys/knockout_stage_keys_page.dart';
+import 'package:volleyball_tournament_app/pages/tournament/matches_chaves/matches_chave_mobile_page.dart';
 import 'package:volleyball_tournament_app/pages/tournament/matches_chaves/matches_chaves_page.dart';
 import 'package:volleyball_tournament_app/pages/tournament/podium/podium_page.dart';
 import 'package:volleyball_tournament_app/pages/tournament/settings/settings_page.dart';
-
+import '../helpers/score_widget.dart';
 import '../pages/history/history_page.dart';
 import '../pages/players/players_page.dart';
 import '../pages/responsive/responsive_layout.dart';
@@ -34,6 +33,17 @@ class AppRouter {
       GoRoute(
         path: '/history',
         builder: (context, state) => const HistoryPage(),
+      ),
+      GoRoute(
+          path: '/score',
+          name: 'score',
+          builder: (context, state) {
+            final partida = (state.extra as Map<String, dynamic>?)?["partida"];
+            return ResponsiveLayout(
+                mobileScreen: ScoreWidgetMobile(partida: partida,),
+                desktopScreen: ScoreWidget(partida: partida)
+            );
+          }
       ),
       GoRoute(
         path: '/init_tournament',
@@ -78,7 +88,7 @@ class AppRouter {
           final matchType = state.uri.queryParameters;
           if(matchType.containsValue('keys')) {
             return ResponsiveLayout(
-              mobileScreen: MatchesChavesPage(tournamentName: tournamentName),
+              mobileScreen: MatchesChavesMobilePage(tournamentName: tournamentName),
               desktopScreen: MatchesChavesPage(tournamentName: tournamentName),
             );
           }
@@ -96,20 +106,16 @@ class AppRouter {
               }
           ),
           GoRoute(
-              path: '/knockout-stage',
-              name: 'fase2',
-              builder: (context, state) {
-                final tournamentName = state.pathParameters['nomeDoTorneio'] ?? '';
-                final matchType = state.uri.queryParameters;
-                if(matchType.containsValue('keys')) {
-                  return const KnockoutStageKeysPage();
-                }
-                return ResponsiveLayout(
-                    mobileScreen: const KnockoutMatchMobilePage(),
-                    desktopScreen: KnockoutStagePage(nomeTorneio: tournamentName)
-                );
-              }
-          ),
+            path: '/score',
+            name: 'match-score',
+            builder: (context, state) {
+              final partida = (state.extra as Map<String, dynamic>?)?["partida"];
+              return ResponsiveLayout(
+                  mobileScreen: ScoreWidgetMobile(partida: partida),
+                  desktopScreen: ScoreWidget(partida: partida)
+              );
+            }
+          )
         ]
       ),
       GoRoute(

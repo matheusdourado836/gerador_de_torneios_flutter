@@ -99,7 +99,7 @@ class _PlayersPageMobileState extends State<PlayersPageMobile> {
                   context: context,
                   builder: (context) => const AddPlayerDialog()
               ).then((res) {
-                if(res is Player) {
+                if(res is List<Player>) {
                   ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         elevation: 4,

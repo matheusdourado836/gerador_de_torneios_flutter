@@ -49,8 +49,11 @@ class PartidaChave {
 
   factory PartidaChave.fromJson(Map<String, dynamic> json) => PartidaChave(
     nome: json['nome'],
-    partidas: json['partidasChave'] != null
-      ? (json['partidasChave'] as List).map((p) => Partida.fromJson(p)).toList()
-      : null
+    partidas: (json['partidas'] as List?)?.map((p) => Partida.fromJson(p)).toList() ?? [],
   );
+
+  Map<String, dynamic> toJson() => {
+    'nome': nome,
+    'partidas': partidas?.map((p) => p.toJson()).toList(),
+  };
 }

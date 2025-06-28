@@ -274,6 +274,7 @@ class _MatchWidgetState extends State<_MatchWidget> {
                             team2: team2!,
                             partida: partidas[index],
                             admin: snapshot.data!,
+                            playersBySide: playersBySide,
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16.0),

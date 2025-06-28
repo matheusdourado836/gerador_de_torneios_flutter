@@ -1,6 +1,8 @@
 import 'package:volleyball_tournament_app/model/partida.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
 
+import 'etapas.dart';
+
 class Categoria {
   String? nome;
   String? nivelCategoria;
@@ -29,22 +31,30 @@ class Categoria {
 class Chave {
   String? nome;
   Map<String, List<Player>> times;
+  AllFases? selectedStage;
+  Partida? thirdPlaceMatch;
 
-  Chave({required this.nome, required this.times});
+  Chave({required this.nome, required this.times, this.selectedStage, this.thirdPlaceMatch});
 
   factory Chave.fromJson(Map<String, dynamic> json) => Chave(
     nome: json["nome"],
     times: json['times'] != null
         ? (json['times'] as Map<String, dynamic>).map(
           (key, value) => MapEntry(key, (value as List).map((player) => Player.fromJson(player)).toList()),
-    )
+        )
         : {},
+    selectedStage: json['selectedStage'] != null
+        ? AllFases.fromJson(json['selectedStage'])
+        : null,
+    thirdPlaceMatch: json['thirdPlaceMatch'] != null ? Partida.fromJson(json['thirdPlaceMatch']) : null,
   );
 
   Map<String, dynamic> toJson() => {
     "nome": nome,
     "times": times.map(
-          (key, value) => MapEntry(key, value.map((jogador) => jogador.toJson()).toList()),
+      (key, value) => MapEntry(key, value.map((jogador) => jogador.toJson()).toList()),
     ),
+    "selectedStage": selectedStage?.fases,
+    "thirdPlaceMatch": thirdPlaceMatch?.toJson()
   };
 }

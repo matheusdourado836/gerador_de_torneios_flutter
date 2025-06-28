@@ -118,10 +118,10 @@ class _TournamentMobilePageState extends State<TournamentMobilePage> {
                   context: context,
                   builder: (context) => const AddPlayerDialog(isTournament: true)
               ).then((res) {
-                if(res is Player) {
+                if(res is List<Player>) {
                   setState(() {
-                    addedPlayers++;
-                    readyPlayers.add(res);
+                    addedPlayers += res.length;
+                    readyPlayers.addAll(res);
                   });
                 }
               }),

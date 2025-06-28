@@ -17,11 +17,14 @@ class Tournament {
   String? qtdJogadoresEmCampo;
   List<Player>? jogadores;
   List<Partida>? partidas;
-  List<PartidaChave>? partidasChave;
+  Map<String, PartidaChave>? partidasChave;
   bool? misto;
   bool? ativo;
   AllFases? selectedStage;
   List<Team>? timesClassificados;
+  Team? firstPlace;
+  Team? secondPlace;
+  Team? thirdPlace;
 
   Tournament({
     this.id,
@@ -41,6 +44,9 @@ class Tournament {
     this.ativo,
     this.selectedStage,
     this.timesClassificados,
+    this.firstPlace,
+    this.secondPlace,
+    this.thirdPlace,
   });
 
   Map<String, dynamic> toJson() {
@@ -57,6 +63,9 @@ class Tournament {
       'chaves': chaves?.map((chaves) => chaves.toJson()).toList(),
       'jogadores': jogadores?.map((jogador) => jogador.toJson()).toList(),
       'partidas': partidas?.map((partida) => partida.toJson()).toList(),
+      'partidasChave': partidasChave?.map(
+        (key, value) => MapEntry(key, value.toJson()),
+      ),
       'misto': misto,
       'ativo': ativo,
       'selectedStage': null,
@@ -73,7 +82,7 @@ class Tournament {
       campo: json['modalidade'],
       qtdJogadoresEmCampo: json['qtdJogadoresEmCampo'],
       modelo: json['modelo'],
-      categorias: json['categorias'] != null
+      categorias: json['categorias'] != null && json['categorias'].isNotEmpty
         ? (json['categorias'] as List).map((categoria) => Categoria.fromJson(categoria)).toList()
         : null,
       chaves: json['chaves'] != null
@@ -82,20 +91,20 @@ class Tournament {
       jogadores: json['jogadores'] != null
         ? (json['jogadores'] as List).map((jogador) => Player.fromJson(jogador)).toList()
         : null,
-      partidas: json['partidas'] != null
+      partidas: json['partidas'] != null && json['partidas'].isNotEmpty
         ? (json['partidas'] as List).map((partida) => Partida.fromJson(partida)).toList()
         : null,
-      partidasChave: json['partidasChave'] != null
-        ? (json['partidasChave'] as Map).entries.map((e) => PartidaChave(
-              nome: e.key,
-              partidas: (e.value as List).map((p) => Partida.fromJson(p)).toList()
-          )).toList()
-        : null,
+        partidasChave: (json['partidasChave'] as Map<String, dynamic>?)?.map(
+          (key, value) => MapEntry(key, PartidaChave.fromJson(value)),
+        ),
       misto: json['misto'],
       ativo: json['ativo'],
       selectedStage: json['selectedStage'] != null
         ? AllFases.fromJson(json['selectedStage'])
-        : null
+        : null,
+      firstPlace: json['firstPlace'] != null ? Team.fromJson(json["firstPlace"]) : null,
+      secondPlace: json['secondPlace'] != null ? Team.fromJson(json["secondPlace"]) : null,
+      thirdPlace: json['thirdPlace'] != null ? Team.fromJson(json["thirdPlace"]) : null,
     );
   }
 }

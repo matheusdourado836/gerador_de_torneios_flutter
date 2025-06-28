@@ -98,3 +98,40 @@ class Team {
     "pontos": pontos
   };
 }
+
+class ExistingTeam{
+  String? id;
+  String? nome;
+  List<Player>? players;
+  int? pontos;
+  int? vitorias;
+  int? derrotas;
+
+  ExistingTeam({
+    this.id,
+    this.nome,
+    this.players,
+    this.pontos,
+    this.vitorias,
+    this.derrotas,
+  });
+
+  factory ExistingTeam.fromJson(Map<String, dynamic> json) => ExistingTeam(
+    id: json['id'],
+    nome: json['nome'],
+    players: json['players'] != null
+        ? (json['players'] as List).map((player) => Player.fromJson(player)).toList()
+        : [],
+    pontos: json['pontos'],
+    vitorias: json['vitorias'],
+    derrotas: json['derrotas'],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "nome": nome,
+    "players": players?.map((p) => p.toJson()).toList(),
+    "pontos": pontos,
+    "vitorias": vitorias,
+  };
+}

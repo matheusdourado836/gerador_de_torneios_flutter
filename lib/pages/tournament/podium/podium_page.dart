@@ -35,7 +35,7 @@ class _PodiumPageState extends State<PodiumPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Torneio finalizado'),
+        title: const Text('Resultado do torneio'),
         actions: [
           IconButton(
             onPressed: () => GoRouter.of(context).go('/'),
@@ -278,11 +278,159 @@ class _CategoriaWidgetState extends State<_CategoriaWidget> with SingleTickerPro
   }
 }
 
-class _KeyWidget extends StatelessWidget {
-  const _KeyWidget({super.key});
+class _KeyWidget extends StatefulWidget {
+  const _KeyWidget();
+
+  @override
+  State<_KeyWidget> createState() => _KeyWidgetState();
+}
+
+class _KeyWidgetState extends State<_KeyWidget> {
+  late final DataController _dataController = Provider.of<DataController>(context, listen: false);
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  Map<String, List<Player>> topPlayers = {};
+
+  Widget _podiumWidget({
+    required String label,
+    required List<Player>? players,
+    required String asset,
+    double height = 80,
+    double fontSize = 40,
+  }) {
+    final playerNames = players?.map((p) => p.nome).toList() ?? [];
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Text('${players?.first.pontosAtuais} pts', style: TextStyle(fontSize: 12),),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: 100,
+          child: Text(
+            playerNames.join(', '),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            overflow: TextOverflow.clip,
+            textAlign: TextAlign.center
+          ),
+        ),
+        Container(
+          height: height,
+          width: 90,
+          color: Colors.black,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          alignment: Alignment.center,
+          child: Text(label, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: fontSize)),
+        ),
+        Image.asset('assets/images/$asset-medal.png', width: 50, height: 50),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    final chaves = _dataController.tournament?.chaves ?? [];
+    final jogadoresOriginais = _dataController.tournament?.jogadores ?? [];
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              onPressed: () => _pageController.previousPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded)
+            ),
+            Text(chaves[_currentPage].nome ?? 'N/A'),
+            IconButton(
+              onPressed: () => _pageController.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
+              icon: const Icon(Icons.arrow_forward_ios_rounded)
+            ),
+          ],
+        ),
+        Expanded(
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: (page) => setState(() => _currentPage = page),
+            itemCount: chaves.length,
+            itemBuilder: (context, index) {
+              final chave = chaves[index];
+              final fases = chave.selectedStage?.fases;
+              if (fases?.isEmpty ?? true) return const Center(child: Text("Sem dados das fases"));
+
+              if(chave.thirdPlaceMatch?.vencedor != null) {
+                final vencedor = chave.thirdPlaceMatch!.vencedor == 0 ? chave.thirdPlaceMatch?.team1 : chave.thirdPlaceMatch?.team2;
+                final ids = vencedor?.map((p) => p.id!).toList() ?? [];
+                topPlayers["terceiro"] = jogadoresOriginais.where((p) => ids.contains(p.id)).toList();
+              }
+
+              // Final: define 1º e 2º lugares
+              final finalFase = fases!['Final'];
+              if (finalFase != null && finalFase['partidas'] is List && finalFase['partidas'].isNotEmpty) {
+                final partidaFinal = Partida.fromJson(finalFase['partidas'].first);
+                final team1Ids = partidaFinal.team1?.map((p) => p.id!).toList() ?? [];
+                final team2Ids = partidaFinal.team2?.map((p) => p.id!).toList() ?? [];
+
+                topPlayers["primeiro"] = jogadoresOriginais.where((p) => team1Ids.contains(p.id)).toList();
+                topPlayers["segundo"] = jogadoresOriginais.where((p) => team2Ids.contains(p.id)).toList();
+              }
+
+              final outrosJogadores = chave.times.entries
+                  .where((entry) => !entry.value.any((j) => topPlayers.values.map((p) => p.map((j) => j.id).toList()).expand((i) => i).contains(j.id)))
+                  .toList();
+
+              outrosJogadores.sort((a, b) {
+                final matchPlayerA = jogadoresOriginais.firstWhere((p) => p.id == a.value.first.id);
+                final matchPlayerB = jogadoresOriginais.firstWhere((p) => p.id == b.value.first.id);
+                return (matchPlayerB.pontosAtuais ?? 0).compareTo(matchPlayerA.pontosAtuais ?? 0);
+              });
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: 320,
+                      height: 300,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (topPlayers.containsKey('segundo'))
+                            _podiumWidget(label: '2', players: topPlayers["segundo"], asset: 'silver'),
+                          if (topPlayers.containsKey('primeiro'))
+                            _podiumWidget(label: '1', players: topPlayers["primeiro"], asset: 'gold', height: 110, fontSize: 48),
+                          if (topPlayers.containsKey('terceiro'))
+                            _podiumWidget(label: '3', players: topPlayers["terceiro"], asset: 'bronze'),
+                        ],
+                      ),
+                    ),
+                    if (outrosJogadores.isNotEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32.0),
+                        child: Text('Outras classificações', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      ),
+                    if (outrosJogadores.isNotEmpty)
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: outrosJogadores.length,
+                        itemBuilder: (context, i) {
+                          final jogadores = outrosJogadores[i].value.toList();
+                          final jogador = jogadoresOriginais.firstWhere((j) => j.id == jogadores.first.id);
+                          return ListTile(
+                            leading: Text('${i + 4}º'),
+                            title: Text(jogadores.map((p) => p.nome).join(', ')),
+                            trailing: Text('${jogador.pontosAtuais ?? 0} pts'),
+                          );
+                        },
+                      )
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 }

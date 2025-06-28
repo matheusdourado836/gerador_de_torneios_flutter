@@ -3,15 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'package:volleyball_tournament_app/model/categoria.dart';
+import 'package:volleyball_tournament_app/pages/tournament/matches_chaves/widgets/add_player_to_key_dialog.dart';
+import 'package:volleyball_tournament_app/pages/tournament/matches_chaves/widgets/edit_key_team_dialog.dart';
+import 'package:volleyball_tournament_app/pages/tournament/matches_chaves/widgets/finals_widget.dart';
 import 'package:volleyball_tournament_app/pages/tournament/widgets/check_admin_dialog.dart';
 import '../../../controller/data_controller.dart';
-import '../../../model/categoria.dart';
 import '../../../model/partida.dart';
 import '../../../model/player.dart';
+import '../widgets/edit_player_dialog.dart';
 import '../widgets/edit_players_dialog.dart';
-import '../widgets/set_winner_mobile_dialog.dart';
+import '../widgets/remove_match_dialog.dart';
+import '../widgets/remove_player_dialog.dart';
+import '../widgets/set_winner_dialog.dart';
 
 class MatchesChavesPage extends StatefulWidget {
   final String tournamentName;
@@ -21,282 +26,75 @@ class MatchesChavesPage extends StatefulWidget {
   State<MatchesChavesPage> createState() => _MatchesChavesPageState();
 }
 
-class _MatchesChavesPageState extends State<MatchesChavesPage> {
-  final PageController _controller = PageController();
-  final PageController _chavesController = PageController();
+class _MatchesChavesPageState extends State<MatchesChavesPage> with SingleTickerProviderStateMixin {
+  late final PageController _chavesController = PageController();
   late final dataProvider = Provider.of<DataController>(context, listen: false);
+  late final TabController _tabController = TabController(length: 5, vsync: this);
+  String _selectedSort = '';
   List<Player> players = [];
-  List<Partida> partidas = [];
+  List<Partida> partidasFiltradas = [];
   List<List<Partida>> partidasByKey = [];
   List<Partida> partidasHistory = [];
-  int playersBySide = 0;
-  int currentRound = 0;
-  int currentMatch = 0;
   int currentKey = 0;
+  int _playersPerTeam = 0;
   bool? _admin;
+  bool _nameSort = false;
+  bool _gamesSort = false;
+  bool _pointsSort = false;
+  bool _mediaSort = false;
+  bool _loading = false;
 
-  List<List<Partida>> createMatchesForKeys() {
-    List<List<Partida>> matches = [];
+  List<Partida> createMatchesForKeys() {
+    final key = dataProvider.tournament!.chaves![currentKey];
 
-    for (var key in dataProvider.tournament!.chaves!) {
-      List<Partida> keyMatches = [];
+    List<Partida> keyMatches = [];
 
-      // Gerar combinações de partidas para todos os times da chave
-      for (int i = 0; i < key.times.values.length; i++) {
-        for (int j = i + 1; j < key.times.values.length; j++) {
-          final team1 = key.times.values.toList()[i];
-          final team2 = key.times.values.toList()[j];
-          for(Player player in [...team1, ...team2]) {
-            player.totalJogos = (player.totalJogos ?? 0) + 1;
-          }
-          keyMatches.add(Partida(team1: team1, team2: team2));
-        }
+    // Gerar combinações de partidas para todos os times da chave
+    for (int i = 0; i < key.times.values.length; i++) {
+      for (int j = i + 1; j < key.times.values.length; j++) {
+        final team1 = key.times.values.toList()[i];
+        final team2 = key.times.values.toList()[j];
+        keyMatches.add(Partida(team1: team1, team2: team2));
       }
-
-      matches.add(keyMatches);
     }
 
-    return matches;
+    return keyMatches;
   }
 
   void startGames() {
-    partidas = [];
     setState(() {
-      partidasByKey = createMatchesForKeys();
-      partidas.shuffle(Random());
+      partidasByKey[currentKey] = createMatchesForKeys();
+      partidasFiltradas = partidasByKey[currentKey];
     });
-    final Map<String, dynamic> partidasObj = {};
-    for(var (index, chave) in dataProvider.tournament!.chaves!.indexed) {
-      final nome = chave.nome!;
-      partidasObj[nome] = partidasByKey[index].map((p) => p.toJson()).toList();
-    }
-
-    dataProvider.updateTorneioData({"partidasChave": partidasObj}, dataProvider.tournament!.id!);
-
-    // for(Partida partida in partidas) {
-    //   partida.vencedor = Random().nextInt(2);
-    //   partida.finished = true;
-    //   for(Player player in [...partida.team1!, ...partida.team2!]) {
-    //     player.jogosFinalizados = (player.jogosFinalizados ?? 0) + 1;
-    //   }
-    // }
+    saveData(setPlayers: false, setKeys: false);
   }
 
-  void updatePlayerGames(List<Player> team) {
-    final playersInKeys = dataProvider.tournament!.chaves![currentKey].times.values.toList();
-    final matchPlayers = playersInKeys.firstWhere((players) => players == team);
-    for (var player in matchPlayers) {
-      final playerFromList = players.firstWhere((p) => p.nome == player.nome);
-      playerFromList.jogosFinalizados = (playerFromList.jogosFinalizados ?? 0) + 1;
+  Future<void> saveData({bool setPlayers = true, bool setMatches = true, bool setKeys = true}) async {
+    if(setPlayers) {
+      final playersJson = dataProvider.tournament!.jogadores!.map((jogador) => jogador.toJson()).toList();
+      await dataProvider.updateTorneioData({"jogadores": playersJson}, dataProvider.tournament!.id!);
     }
-    final playersJson = players.map((jogador) => jogador.toJson());
-    setState(() => players);
-    dataProvider.updateTorneioData({"jogadores": playersJson}, dataProvider.tournament!.id!);
-  }
-
-  void updatePlayerPoints(List<Player> team) {
-    final playersInKeys = dataProvider.tournament!.chaves![currentKey].times.values.toList();
-    final matchPlayers = playersInKeys.firstWhere((players) => players == team);
-    for (var player in matchPlayers) {
-      final playerFromList = players.firstWhere((p) => p.nome == player.nome);
-      player.pontosAtuais = (player.pontosAtuais ?? 0) + 1;
-      playerFromList.pontosAtuais = (playerFromList.pontosAtuais ?? 0) + 1;
-    }
-    final playersJson = players.map((jogador) => jogador.toJson());
-    setState(() => players);
-    dataProvider.updateTorneioData({"jogadores": playersJson}, dataProvider.tournament!.id!);
-  }
-
-  Partida createRandomMatch() {
-    final times = dataProvider.tournament!.chaves![currentKey].times.values.toList();
-
-    if (times.length < 2) {
-      throw Exception('Não há times suficientes para criar uma partida.');
-    }
-
-    // Ordenar os times pela soma dos jogos dos jogadores (os que jogaram menos primeiro)
-    times.sort((teamA, teamB) {
-      int totalJogosA = teamA.fold(0, (sum, player) => sum + (player.totalJogos ?? 0));
-      int totalJogosB = teamB.fold(0, (sum, player) => sum + (player.totalJogos ?? 0));
-      return totalJogosA.compareTo(totalJogosB);
-    });
-
-    // Selecionar os dois primeiros times da lista
-    final team1 = times[0];
-    final team2 = times[1];
-
-    // Atualizar a quantidade de jogos dos jogadores dos times selecionados
-    for (Player player in [...team1, ...team2]) {
-      player.totalJogos = (player.totalJogos ?? 0) + 1;
-    }
-
-    return Partida(team1: team1, team2: team2);
-  }
-
-  void createRandom2x2Match(List<Player> jogadores) {
-    // Ordenar os jogadores por total de jogos, priorizando os com menos jogos
-    List<Player> males = jogadores.where((player) => player.sex == 0).toList();
-    List<Player> females = jogadores.where((player) => player.sex == 1).toList();
-    List<List<Player>> allMatches = [...partidas.map((p) => p.team1!), ...partidas.map((p) => p.team2!)];
-
-    males.sort((a, b) => (a.totalJogos ?? 0).compareTo(b.totalJogos ?? 0));
-    females.sort((a, b) => (a.totalJogos ?? 0).compareTo(b.totalJogos ?? 0));
-
-    List<Player> malesSublist = List.from(males);
-    List<Player> femalesSublist = List.from(females);
-    // Listas para armazenar as duplas
-    List<Player> team1 = [];
-    List<Player> team2 = [];
-    String team1Id = const Uuid().v4();
-    String team2Id = const Uuid().v4();
-
-    final firstMale = malesSublist.removeAt(0);
-    males.shuffle();
-    final randomMale = malesSublist[Random().nextInt(malesSublist.length)];
-
-    final firstFemale = femalesSublist.removeAt(0);
-    females.shuffle();
-    final randomFemale = femalesSublist[Random().nextInt(femalesSublist.length)];
-
-    firstFemale.teamId = team1Id;
-    randomFemale.teamId = team1Id;
-    team1.add(firstMale);
-    team1.add(randomFemale);
-
-    firstFemale.teamId = team2Id;
-    randomMale.teamId = team2Id;
-    team2.add(firstFemale);
-    team2.add(randomMale);
-
-    firstMale.totalJogos = (firstMale.totalJogos ?? 0) + 1;
-    randomMale.totalJogos = (firstMale.totalJogos ?? 0) + 1;
-    firstFemale.totalJogos = (firstMale.totalJogos ?? 0) + 1;
-    randomFemale.totalJogos = (firstMale.totalJogos ?? 0) + 1;
-
-    // Agora temos os dois times prontos
-    Partida partida = Partida(team1: team1, team2: team2);
-    setState(() {
-      partidasByKey[currentKey].add(partida);
-    });
-  }
-
-  void addRoundManually() => showDialog(
-      context: context,
-      builder: (context) {
-        ValueNotifier<bool> flag = ValueNotifier(false);
-        List<String> playersNames = dataProvider.tournament!.jogadores!.map((player) => player.nome!).toList();
-        final partida = Partida();
-        List<String?> team1Selection = List<String?>.filled(players.length, null);
-        List<String?> team2Selection = List<String?>.filled(players.length, null);
-        return AlertDialog(
-          title: const Text('Adicionar Partida'),
-          content: ValueListenableBuilder(valueListenable: flag, builder: (context, val, _) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('TIME A'),
-                for(var i = 0; i < playersBySide; i++)
-                  DropdownButton<String>(
-                      value: team1Selection[i],
-                      items: playersNames.map((player) {
-                        final playerFromList = players.firstWhere((p) => p.nome! == player);
-                        return DropdownMenuItem(
-                            value: player,
-                            child: Text('$player - ${playerFromList.totalJogos ?? 0} jogos')
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        team1Selection[i] = newValue;
-                        flag.value = !flag.value;
-                      }
-                  ),
-                const SizedBox(height: 16),
-                const Text('TIME B'),
-                for(var j = 0; j < playersBySide; j++)
-                  DropdownButton<String>(
-                      value: team2Selection[j],
-                      items: playersNames.map((player) {
-                        final playerFromList = players.firstWhere((p) => p.nome == player);
-                        return DropdownMenuItem(
-                            value: player,
-                            child: Text('$player - ${playerFromList.totalJogos ?? 0} jogos')
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        team2Selection[j] = newValue;
-                        flag.value = !flag.value;
-                      }
-                  ),
-              ],
-            );
-          }),
-          actions: [
-            TextButton(
-                onPressed: () {
-                  if(team1Selection.nonNulls.length == playersBySide && team2Selection.nonNulls.length == playersBySide) {
-                    partida.team1 ??= [];
-                    partida.team2 ??= [];
-                    final team1Id = const Uuid().v4();
-                    final team2Id = const Uuid().v4();
-                    for(var player in team1Selection.nonNulls.toList()) {
-                      final matchPlayer = dataProvider.tournament!.jogadores!.firstWhere((p) => p.nome == player);
-                      matchPlayer.teamId = team1Id;
-                      partida.team1!.add(matchPlayer);
-                    }
-                    for(var player in team2Selection.nonNulls.toList()) {
-                      final matchPlayer = dataProvider.tournament!.jogadores!.firstWhere((p) => p.nome == player);
-                      matchPlayer.teamId = team2Id;
-                      partida.team2!.add(matchPlayer);
-                    }
-                    setState(() {
-                      final qtdTimes = dataProvider.tournament!.chaves![currentKey].times.length;
-                      dataProvider.tournament!.chaves![currentKey].times["time ${qtdTimes + 1}"] = partida.team1!;
-                      dataProvider.tournament!.chaves![currentKey].times["time ${qtdTimes + 2}"] = partida.team2!;
-                      partidasByKey[currentKey].insert(partidas.length, partida);
-                    });
-                    final Map<String, dynamic> partidasObj = {};
-                    for(var (index, chave) in dataProvider.tournament!.chaves!.indexed) {
-                      final nome = chave.nome!;
-                      partidasObj[nome] = partidasByKey[index].map((p) => p.toJson()).toList();
-                    }
-                    dataProvider.updateTorneioData({"partidasChave": partidasObj}, dataProvider.tournament!.id!);
-                    dataProvider.updateTorneioData(
-                      {"chaves": dataProvider.tournament!.chaves!.map((c) => c.toJson()).toList()},
-                      dataProvider.tournament!.id!);
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text('Salvar')
-            ),
-            TextButton(
-                onPressed: () {
-                  if(playersBySide == 2) {
-                    final key = dataProvider.tournament!.chaves![currentKey];
-                    final List<Player> playersAll = [];
-                    for(List<Player> players in key.times.values.toList()) {
-                      playersAll.addAll(players);
-                    }
-                    createRandom2x2Match(playersAll);
-                  }else {
-                    setState(() => partidasByKey[currentKey].add(createRandomMatch()));
-                  }
-                  Navigator.pop(context);
-                },
-                child: const Text('Gerar partida aleatória')
-            )
-          ],
-        );
+    if(setMatches) {
+      for(var partidaChave in getChavesOrdenadas(dataProvider.tournament!.partidasChave)) {
+        final index = int.parse(partidaChave.key);
+        partidaChave.value.partidas = partidasByKey[index];
       }
-  );
 
-  Future<bool> checkIfUserIsAlreadyLoggedIn() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    if(prefs.getString('admin')?.isEmpty ?? true) {
-      return false;
+      final partidasChaveMap = dataProvider.tournament!.partidasChave?.map((key, value) => MapEntry(key, value.toJson()));
+
+      await dataProvider.updateTorneioData({"partidasChave": partidasChaveMap}, dataProvider.tournament!.id!);
     }
+    if(setKeys) {
+      final keysJson = dataProvider.tournament!.chaves?.map((key) => key.toJson()).toList();
+      await dataProvider.updateTorneioData({"chaves": keysJson}, dataProvider.tournament!.id!);
+    }
+  }
 
-    return await dataProvider.checkPass(nomeDoTorneio: widget.tournamentName, userPass: prefs.getString('admin')!);
+  List<MapEntry<String, PartidaChave>> getChavesOrdenadas(Map<String, PartidaChave>? chaves) {
+    if (chaves == null) return [];
+    final entries = chaves.entries.toList();
+    entries.sort((a, b) => int.parse(a.key).compareTo(int.parse(b.key)));
+    return entries;
   }
 
   Future<void> loadTournamentFromBd() async {
@@ -305,21 +103,164 @@ class _MatchesChavesPageState extends State<MatchesChavesPage> {
         GoRouter.of(context).go('/');
         return;
       }
-      players = dataProvider.tournament!.jogadores ?? [];
-      partidas = dataProvider.tournament!.partidas ?? [];
-      for(PartidaChave partida in dataProvider.tournament!.partidasChave ?? []) {
-        partidasByKey.add(partida.partidas ?? []);
+      _playersPerTeam = int.parse(dataProvider.tournament!.qtdJogadoresEmCampo!.split('x')[0]);
+      for(int i = 0; i < dataProvider.tournament!.chaves!.length; i++) {
+        partidasByKey.add([]);
       }
-      partidasHistory = dataProvider.tournament!.partidas?.where((partida) => partida.finished == true).toList() ?? [];
-      playersBySide = int.parse(dataProvider.tournament!.qtdJogadoresEmCampo!.split('x')[0]);
+      setPlayers();
+      for(var partidaChave in getChavesOrdenadas(dataProvider.tournament!.partidasChave)) {
+        final index = int.parse(partidaChave.key);
+        partidasByKey[index].addAll(partidaChave.value.partidas ?? []);
+      }
+      partidasFiltradas = partidasByKey[currentKey];
+      partidasHistory = partidasByKey[currentKey].where((partida) => partida.finished == true).toList();
       setState(() {});
     });
+  }
+
+  Future<void> simulateResults() async {
+    setState(() => _loading = true);
+    for(Partida partida in partidasByKey[currentKey]) {
+      final vencedor = Random().nextInt(2);
+      setState(() {
+        partida.vencedor = vencedor;
+        partida.finished = true;
+        for(Player player in partida.team1!) {
+          final playerInList = getKeyPlayer(player);
+          final playerTournament = dataProvider.tournament!.jogadores!.firstWhere((p) => p.id == player.id);
+          playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) + 1;
+          playerTournament.jogosFinalizados = (playerTournament.jogosFinalizados ?? 0) + 1;
+          if(vencedor == 0) {
+            playerTournament.pontosAtuais = (playerTournament.pontosAtuais ?? 0) + 1;
+            playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) + 1;
+          }
+        }
+        for(Player player in partida.team2!) {
+          final playerInList = getKeyPlayer(player);
+          final playerTournament = dataProvider.tournament!.jogadores!.firstWhere((p) => p.id == player.id);
+          playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) + 1;
+          playerTournament.jogosFinalizados = (playerTournament.jogosFinalizados ?? 0) + 1;
+          if(vencedor == 1) {
+            playerTournament.pontosAtuais = (playerTournament.pontosAtuais ?? 0) + 1;
+            playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) + 1;
+          }
+        }
+        partidasHistory.add(partida);
+      });
+    }
+    await saveData(setKeys: false);
+    setState(() => _loading = false);
+  }
+
+  Future<void> resetMatches() async {
+    setState(() {
+      for(Partida partida in partidasByKey[currentKey]) {
+        partida.vencedor = null;
+        partida.finished = null;
+        for(Player player in [...partida.team1!, ...partida.team2!]) {
+          final playerTournament = dataProvider.tournament!.jogadores!.firstWhere((p) => p.id == player.id);
+          final playerInList = getKeyPlayer(player);
+          playerInList.pontosAtuais = 0;
+          playerInList.jogosFinalizados = 0;
+          playerTournament.pontosAtuais = 0;
+          playerTournament.jogosFinalizados = 0;
+        }
+      }
+      partidasHistory = [];
+    });
+    await saveData(setKeys: false);
+  }
+
+  void excluirPartidas() {
+    for(Partida partida in partidasByKey[currentKey]) {
+      for(Player player in [...partida.team1 ?? [], ...partida.team2 ?? []]) {
+        final playerInList = getKeyPlayer(player);
+        final tournamentPlayerInList = dataProvider.tournament!.jogadores!.firstWhere((p) => p.id == player.id);
+        playerInList.pontosAtuais = 0;
+        playerInList.jogosFinalizados = 0;
+        tournamentPlayerInList.pontosAtuais = 0;
+        tournamentPlayerInList.jogosFinalizados = 0;
+      }
+    }
+    setState(() {
+      partidasByKey[currentKey] = [];
+    });
+    saveData(setKeys: false);
+  }
+
+  Player getKeyPlayer(Player player) {
+    Player matchPlayer = players.firstWhere((p) => p.id == player.id, orElse: () => Player());
+    if(matchPlayer.id == null) {
+      matchPlayer = dataProvider.tournament!.jogadores!.firstWhere((p) => p.id == player.id, orElse: () => Player());
+    }
+
+    return matchPlayer.id != null ? matchPlayer : player;
+  }
+
+  void setPlayers() {
+    final keyTeams = dataProvider.tournament!.chaves![currentKey].times.values.toList();
+    final keyTeamsIds = keyTeams.map((t) => t.map((p) => p.id!).toList()).toList().expand((element) => element).toList();
+    players = dataProvider.tournament!.jogadores!.where((p) => keyTeamsIds.contains(p.id)).toList();
+  }
+
+  Widget _buildSortableHeader({
+    required String label,
+    required bool isActive,
+    required bool ascending,
+    required double width,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        width: width,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: isActive ? Colors.blue : null,
+              ),
+            ),
+            if (isActive)
+              Icon(
+                ascending ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                color: Colors.blue,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget appBarTitle() {
+    if(partidasByKey.isEmpty) {
+      return const Text('Fase classificatória');
+    }else {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            onPressed: () => _chavesController.previousPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded)
+          ),
+          Text('${dataProvider.tournament!.chaves![currentKey].nome}', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
+          IconButton(
+            onPressed: () => _chavesController.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
+            icon: const Icon(Icons.arrow_forward_ios_rounded)
+          ),
+        ],
+      );
+    }
   }
 
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      checkIfUserIsAlreadyLoggedIn().then((res) {
+      dataProvider.checkIfUserIsAlreadyLoggedIn(widget.tournamentName).then((res) {
         if(res) {
           _admin = true;
           loadTournamentFromBd();
@@ -334,332 +275,790 @@ class _MatchesChavesPageState extends State<MatchesChavesPage> {
     super.initState();
   }
 
-  Widget appBarTitle() {
-    if(partidasByKey.isEmpty) {
-      return const Text('Fase classificatória');
-    }else {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-              onPressed: () => _chavesController.previousPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
-              icon: const Icon(Icons.arrow_back_ios)
-          ),
-          Text('${dataProvider.tournament!.chaves![currentKey].nome}', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
-          IconButton(
-              onPressed: () => _chavesController.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
-              icon: const Icon(Icons.arrow_forward_ios)
-          ),
-        ],
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: dataProvider.tournament == null ? null : AppBar(
         centerTitle: true,
         title: appBarTitle(),
+        leading: IconButton(
+          onPressed: () => context.go('/'),
+          icon: const Icon(Icons.home),
+        ),
         actions: [
-          IconButton(
-              onPressed: () => context.go(context.namedLocation(
-                'settings',
-                pathParameters: {"nomeDoTorneio": widget.tournamentName},
-                queryParameters: {"m": "keys"}
-              )),
-              icon: const Icon(Icons.settings)
-          )
+          if(_admin ?? false)
+            IconButton(
+                onPressed: () => context.go(context.namedLocation(
+                  'settings',
+                  pathParameters: {"nomeDoTorneio": widget.tournamentName},
+                  queryParameters: {"m": "keys"}
+                )),
+                icon: const Icon(Icons.settings)
+            )
         ],
       ),
-      body: Consumer<DataController>(
-        builder: (context, value, _) {
-          if(value.loading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Consumer<DataController>(
+            builder: (context, value, _) {
+              if(value.loading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if(value.tournament == null || _admin == null) {
-            return const Center(
-              child: SizedBox(
-                child: Text('AGUARDANDO ADMINISTRADOR INICIAR O TORNEIO'),
-              ),
-            );
-          }
+              if(value.tournament == null || _admin == null) {
+                return const Center(
+                  child: Text('AGUARDANDO ADMINISTRADOR INICIAR O TORNEIO'),
+                );
+              }
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                child: Column(
-                  children: [
-                    if(partidasByKey.isEmpty)
-                      if(_admin ?? false)
-                        SizedBox(
-                          width: constraints.maxWidth,
-                          height: constraints.maxHeight,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ElevatedButton(
-                                  onPressed: () => startGames(),
-                                  child: const Text('Gerar times')
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                  onPressed: () => addRoundManually(),
-                                  child: const Text('Adicionar manualmente')
-                              )
-                            ],
-                          ),
-                        )
-                      else const Center(
-                        child: Text('Aguarde o administrador iniciar os jogos'),
+              if(partidasByKey.isEmpty && _admin == true) {
+                return SizedBox(
+                  width: constraints.maxWidth,
+                  height: constraints.maxHeight,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => startGames(),
+                        child: const Text('Gerar times')
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          dataProvider.addRoundManually(context, jogadoresDisponiveis: players).then((partida) {
+                            if(partida == null) return;
+                            final team1Id = const Uuid().v4();
+                            final team2Id = const Uuid().v4();
+                            setState(() {
+                              for (var player in partida.team1!) {
+                                final matchPlayer = getKeyPlayer(player);
+                                final matchTournamentPlayer = dataProvider.tournament!.jogadores!.firstWhere((p) => p.id == player.id);
+                                matchPlayer.teamId = team1Id;
+                                matchTournamentPlayer.teamId = team1Id;
+                              }
+                              for (var player in partida.team2!) {
+                                final matchPlayer = getKeyPlayer(player);
+                                final matchTournamentPlayer = dataProvider.tournament!.jogadores!.firstWhere((p) => p.id == player.id);
+                                matchPlayer.teamId = team2Id;
+                                matchTournamentPlayer.teamId = team2Id;
+                              }
+                              final qtdTimes = dataProvider.tournament!.chaves![currentKey].times.length;
+                              dataProvider.tournament!.chaves![currentKey].times["time${qtdTimes + 1}"] = partida.team1!;
+                              dataProvider.tournament!.chaves![currentKey].times["time${qtdTimes + 2}"] = partida.team2!;
+                              partidasByKey[currentKey].insert(partidasByKey[currentKey].length, partida);
+                            });
+                            saveData();
+                          });
+                        },
+                        child: const Text('Adicionar manualmente')
                       )
-                    else
-                      SizedBox(
-                        width: constraints.maxWidth,
-                        height: constraints.maxHeight,
-                        child: PageView.builder(
-                          controller: _chavesController,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: partidasByKey.length,
-                          onPageChanged: (page) {
-                            currentMatch = 0;
-                            setState(() => currentKey = page);
-                          },
-                          itemBuilder: (context, index) {
-                            partidas = partidasByKey[index];
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 24.0, right: 8),
-                                  child: Text('Jogos finalizados: ${partidas.where((p) => p.finished == true).length}'),
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    IconButton(
-                                        onPressed: () => _controller.previousPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
-                                        icon: const Icon(Icons.arrow_back_ios)
-                                    ),
-                                    Text(
-                                        'Jogo ${currentMatch + 1} de ${partidas.length}',
-                                        textAlign: TextAlign.center,
-                                        style: Theme.of(context).textTheme.titleLarge
-                                    ),
-                                    IconButton(
-                                        onPressed: () => _controller.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
-                                        icon: const Icon(Icons.arrow_forward_ios)
-                                    ),
-                                  ],
-                                ),
-                                Expanded(
-                                  child: PageView.builder(
-                                    controller: _controller,
-                                    onPageChanged: (page) => setState(() => currentMatch = page),
-                                    itemCount: partidas.length,
-                                    itemBuilder: (context, index) {
-                                      final team1 = partidas[index].team1;
-                                      final team2 = partidas[index].team2;
+                    ],
+                  ),
+                );
+              }
 
-                                      return Column(
-                                        mainAxisAlignment: (_admin ?? false) ? MainAxisAlignment.spaceBetween : MainAxisAlignment.center,
+              return SizedBox(
+                width: constraints.maxWidth,
+                height: constraints.maxHeight,
+                child: PageView.builder(
+                  controller: _chavesController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: partidasByKey.length,
+                  onPageChanged: (page) {
+                    setState(() {
+                      currentKey = page;
+                      partidasFiltradas = partidasByKey[currentKey];
+                      partidasHistory = partidasByKey[currentKey].where((p) => p.finished == true).toList();
+                      setPlayers();
+                      _tabController.animateTo(0);
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    if(partidasByKey[currentKey].isEmpty) {
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () => startGames(),
+                            child: const Text('Gerar times')
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              dataProvider.addRoundManually(context, jogadoresDisponiveis: players).then((partida) {
+                                if(partida == null) return;
+                                final team1Id = const Uuid().v4();
+                                final team2Id = const Uuid().v4();
+                                setState(() {
+                                  for (var player in partida.team1!) {
+                                    final matchPlayer = getKeyPlayer(player);
+                                    final matchTournamentPlayer = dataProvider.tournament!.jogadores!.firstWhere((p) => p.id == player.id);
+                                    matchPlayer.teamId = team1Id;
+                                    matchTournamentPlayer.teamId = team1Id;
+                                  }
+                                  for (var player in partida.team2!) {
+                                    final matchPlayer = getKeyPlayer(player);
+                                    final matchTournamentPlayer = dataProvider.tournament!.jogadores!.firstWhere((p) => p.id == player.id);
+                                    matchPlayer.teamId = team2Id;
+                                    matchTournamentPlayer.teamId = team2Id;
+                                  }
+                                  final qtdTimes = dataProvider.tournament!.chaves![currentKey].times.length;
+                                  dataProvider.tournament!.chaves![currentKey].times["time${qtdTimes + 1}"] = partida.team1!;
+                                  dataProvider.tournament!.chaves![currentKey].times["time${qtdTimes + 2}"] = partida.team2!;
+                                  partidasByKey[currentKey].insert(partidasByKey[currentKey].length, partida);
+                                });
+                                saveData();
+                              });
+                            },
+                            child: const Text('Adicionar manualmente')
+                          )
+                        ],
+                      );
+                    }
+                    return Column(
+                      children: [
+                        TabBar(
+                          controller: _tabController,
+                          dividerHeight: 0,
+                          tabs: [
+                            Tab(text: 'Jogadores ${players.length}'),
+                            const Tab(text: 'Chaves'),
+                            Tab(text: 'Partidas ${partidasByKey[currentKey].length}'),
+                            const Tab(text: 'Histórico'),
+                            const Tab(text: 'Classificações'),
+                          ],
+                          tabAlignment: TabAlignment.fill,
+                        ),
+                        Flexible(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 20),
+                            child: TabBarView(
+                              controller: _tabController,
+                              children: [
+                                SingleChildScrollView(
+                                  child: Center(
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(maxWidth: 900),
+                                      child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.stretch,
                                         children: [
-                                          const SizedBox.shrink(),
-                                          PartidaItem(
-                                            team1: team1!,
-                                            team2: team2!,
-                                            partida: partidas[index],
-                                            admin: _admin ?? false,
-                                          ),
-                                          if(_admin ?? false)
-                                            Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                                              child: ElevatedButton(
-                                                onPressed: () {
-                                                  showDialog(
-                                                      context: context,
-                                                      builder: (context) => SetWinnerMobileDialog(partida: partidas[index])).then((res) {
-                                                    if(res is List) {
-                                                      _controller.nextPage(duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
-                                                      setState(() {
-                                                        updatePlayerGames(team1);
-                                                        updatePlayerGames(team2);
-                                                        partidas[index].finished = true;
-                                                        partidas[index].vencedor = res[0] ? 0 : 1;
-                                                        partidas[index].pontos = res[2];
-                                                        partidasHistory.add(partidas[index]);
-                                                        if(res[1]) {
-                                                          if(res[0]) {
-                                                            updatePlayerPoints(team1);
-                                                          }else {
-                                                            updatePlayerPoints(team2);
-                                                          }
-                                                        }
-                                                        final partidasJson = partidas.map((partida) => partida.toJson());
-                                                        dataProvider.updateTorneioData({"partidas": partidasJson}, dataProvider.tournament!.id!);
-                                                      });
-                                                    }
-                                                  }
-                                                  );
+                                          const SizedBox(height: 16),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              _buildSortableHeader(
+                                                label: 'Nome',
+                                                ascending: _nameSort,
+                                                isActive: _selectedSort == 'name',
+                                                width: 250,
+                                                onTap: () {
+                                                  setState(() {
+                                                    _selectedSort = 'name';
+                                                    _nameSort = !_nameSort;
+                                                    players.sort((a, b) => _nameSort
+                                                      ? a.nome!.compareTo(b.nome!)
+                                                      : b.nome!.compareTo(a.nome!)
+                                                    );
+                                                  });
                                                 },
-                                                style: ElevatedButton.styleFrom(
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                                    fixedSize: const Size(118, 30),
-                                                    backgroundColor: partidas[index].vencedor != null ? Colors.blue : const Color.fromRGBO(42, 35, 42, 1)
+                                              ),
+                                              _buildSortableHeader(
+                                                label: 'Jogos',
+                                                ascending: _gamesSort,
+                                                isActive: _selectedSort == 'games',
+                                                width: 80,
+                                                onTap: () {
+                                                  setState(() {
+                                                    _selectedSort = 'games';
+                                                    _gamesSort = !_gamesSort;
+                                                    players.sort((a, b) => _gamesSort
+                                                        ? (a.jogosFinalizados ?? 0)
+                                                        .compareTo(b.jogosFinalizados ?? 0)
+                                                        : (b.jogosFinalizados ?? 0)
+                                                        .compareTo(a.jogosFinalizados ?? 0));
+                                                  });
+                                                },
+                                              ),
+                                              _buildSortableHeader(
+                                                label: 'Pontos',
+                                                ascending: _pointsSort,
+                                                isActive: _selectedSort == 'points',
+                                                width: 80,
+                                                onTap: () {
+                                                  setState(() {
+                                                    _selectedSort = 'points';
+                                                    _pointsSort = !_pointsSort;
+                                                    players.sort((a, b) => _pointsSort
+                                                        ? (a.pontosAtuais ?? 0)
+                                                        .compareTo(b.pontosAtuais ?? 0)
+                                                        : (b.pontosAtuais ?? 0)
+                                                        .compareTo(a.pontosAtuais ?? 0));
+                                                  });
+                                                },
+                                              ),
+                                              _buildSortableHeader(
+                                                label: 'Média',
+                                                ascending: _mediaSort,
+                                                isActive: _selectedSort == 'media',
+                                                width: 80,
+                                                onTap: () {
+                                                  setState(() {
+                                                    _selectedSort = 'media';
+                                                    _mediaSort = !_mediaSort;
+                                                    players.sort((a, b) {
+                                                      final mediaA = (a.pontosAtuais ?? 0) / (a.jogosFinalizados ?? 1);
+                                                      final mediaB = (b.pontosAtuais ?? 0) / (b.jogosFinalizados ?? 1);
+                                                      return _mediaSort ? mediaA.compareTo(mediaB) : mediaB.compareTo(mediaA);
+                                                    });
+                                                  });
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                          const Divider(thickness: 1),
+                                          Column(
+                                            children: players.map((player) {
+                                              return Padding(
+                                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    // Nome + ações de admin
+                                                    SizedBox(
+                                                      width: 250,
+                                                      child: Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: Text(
+                                                              player.nome!,
+                                                              overflow: TextOverflow.ellipsis,
+                                                              style: const TextStyle(fontSize: 18),
+                                                            ),
+                                                          ),
+                                                          if (_admin == true) ...[
+                                                            IconButton(
+                                                              icon: const Icon(Icons.edit),
+                                                              onPressed: () async {
+                                                                final matchPlayer = dataProvider.tournament!.jogadores!
+                                                                    .firstWhere((p) => p.id == player.id);
+                                                                final res = await showDialog(
+                                                                  context: context,
+                                                                  builder: (context) => EditPlayerDialog(player: matchPlayer),
+                                                                );
+                                                                if (res is Player) {
+                                                                  setState(() {});
+                                                                  saveData(setMatches: false, setKeys: false);
+                                                                }
+                                                              },
+                                                            ),
+                                                            IconButton(
+                                                              icon: const Icon(Icons.delete),
+                                                              onPressed: () async {
+                                                                final confirm = await showDialog(
+                                                                  context: context,
+                                                                  builder: (context) => RemovePlayerTournamentDialog(player: player),
+                                                                );
+                                                                if (confirm == true) {
+                                                                  setState(() {
+                                                                    players.remove(player);
+                                                                  });
+                                                                  dataProvider.removeSingle(
+                                                                      'jogadores', player.toJson(), dataProvider.tournament!.id!);
+                                                                  for (Chave chave in dataProvider.tournament!.chaves ?? []) {
+                                                                    for (List<Player> times in chave.times.values) {
+                                                                      times.removeWhere((p) => p.id == player.id);
+                                                                    }
+                                                                  }
+                                                                  for (Partida partida in partidasByKey[currentKey]) {
+                                                                    partida.team1?.removeWhere((p) => p.id == player.id);
+                                                                    partida.team2?.removeWhere((p) => p.id == player.id);
+                                                                  }
+                                                                  saveData(setPlayers: false);
+                                                                }
+                                                              },
+                                                            ),
+                                                          ],
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      width: 80,
+                                                      child: Text(
+                                                        '${player.jogosFinalizados ?? 0}',
+                                                        textAlign: TextAlign.center,
+                                                        style: const TextStyle(fontSize: 16),
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      width: 80,
+                                                      child: Text(
+                                                        '${player.pontosAtuais ?? 0}',
+                                                        textAlign: TextAlign.center,
+                                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      width: 80,
+                                                      child: Text(
+                                                        ((player.pontosAtuais ?? 0) / (player.jogosFinalizados ?? 1)).toStringAsFixed(2),
+                                                        textAlign: TextAlign.center,
+                                                        style: const TextStyle(fontSize: 16),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                                child: partidas[index].vencedor != null ? const Text('EDITAR PARTIDA') : const Text('MARCAR RESULTADO')
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SingleChildScrollView(
+                                  child: SizedBox(
+                                    width: constraints.maxWidth * .7,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        for(var i = 0; i < dataProvider.tournament!.chaves!.length; i++)
+                                          Column(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Text(dataProvider.tournament!.chaves![i].nome!, style: const TextStyle(fontWeight: FontWeight.bold),),
+                                                  if(_admin == true)
+                                                    IconButton(
+                                                    onPressed: () => showDialog(
+                                                      context: context,
+                                                      builder: (context) => AddPlayerToKeyDialog(
+                                                        existingTeams: dataProvider.tournament!.chaves![i].times.values.toList(),
+                                                        selectedKey: dataProvider.tournament!.chaves![i],
+                                                      )
+                                                    ).then((result) {
+                                                      if (result != null) {
+                                                        final Player jogador = result['player'];
+                                                        final dynamic destino = result['team'];
+
+                                                        if (destino == 'new_team') {
+                                                          final qtdTimes = dataProvider.tournament!.chaves![i].times.length;
+                                                          dataProvider.tournament!.chaves![i].times['time${qtdTimes + 1}'] = [jogador];
+                                                        } else if (destino is List<Player>) {
+                                                          final matchTeam = dataProvider.tournament!.chaves![i].times.values.toList().firstWhere((team) => team.where((p) => p.teamId == jogador.teamId).isNotEmpty);
+                                                          matchTeam.add(jogador);
+                                                        }
+                                                        setPlayers();
+                                                        saveData(setPlayers: false, setMatches: false);
+                                                        setState(() {});
+                                                      }
+                                                    }),
+                                                    icon: const Icon(Icons.add)
+                                                  )
+                                                ],
+                                              ),
+                                              const SizedBox(height: 16),
+                                              SizedBox(
+                                                width: 200,
+                                                child: ListView.builder(
+                                                  shrinkWrap: true,
+                                                  physics: const NeverScrollableScrollPhysics(),
+                                                  itemCount: dataProvider.tournament?.chaves?[i].times.entries.toList().length ?? 0,
+                                                  itemBuilder: (context, index) {
+                                                    final times = dataProvider.tournament?.chaves![i].times.entries.toList()[index];
+                                                    return Padding(
+                                                      padding: const EdgeInsets.only(bottom: 16.0),
+                                                      child: Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: Column(
+                                                              children: times!.value.map((player) => Text(player.nome!, textAlign: TextAlign.center,)).toList(),
+                                                            ),
+                                                          ),
+                                                          if(_admin == true)
+                                                            IconButton(
+                                                            onPressed: () {
+                                                              showDialog<List<Player>>(
+                                                                context: context,
+                                                                builder: (context) {
+                                                                  return EditKeyTeamDialog(
+                                                                    jogadoresDisponiveis: dataProvider.tournament!.chaves![i].times.values.toList().expand((element) => element).toList(),
+                                                                    jogadoresAtuais: times.value,
+                                                                    playersPerTeam: _playersPerTeam,
+                                                                  );
+                                                                },
+                                                              ).then((res) {
+                                                                if(res is List<Player>) {
+                                                                  setState(() {
+                                                                    times.value.clear();
+                                                                    times.value.addAll(res);
+                                                                  });
+                                                                  saveData();
+                                                                }
+                                                              });
+                                                            },
+                                                            icon: const Icon(Icons.edit)
+                                                          ),
+                                                          if(_admin == true)
+                                                            IconButton(
+                                                            onPressed: () {
+                                                              showDialog(
+                                                                context: context,
+                                                                builder: (context) {
+                                                                  return AlertDialog(
+                                                                    title: const Text('Alerta'),
+                                                                    content: const Text('Deseja realmete remover esse time da chave?'),
+                                                                    actions: [
+                                                                      TextButton(
+                                                                        onPressed: () => Navigator.pop(context, true),
+                                                                        child: const Text('Sim')
+                                                                      ),
+                                                                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Não')),
+                                                                    ],
+                                                                  );
+                                                                },
+                                                              ).then((res) {
+                                                                if(res == true) {
+                                                                  final key = times.key;
+                                                                  dataProvider.tournament?.chaves![i].times.remove(key);
+                                                                  //TODO FAZER UMA FUNCAO PARA REMOVER AS PARTIDAS NAO FINALIZADAS EM QUE ESSE TIME ESTA PRESENTE
+                                                                  setPlayers();
+                                                                  saveData(setPlayers: false, setMatches: false);
+                                                                  setState(() {});
+                                                                }
+                                                              });
+                                                            },
+                                                            icon: const Icon(Icons.delete)
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                      ],
+                                    ),
+                                  )
+                                ),
+                                SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 16),
+                                        child: Text(
+                                          'Jogos finalizados: ${partidasByKey[currentKey].where((p) => p.finished == true).length}',
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: constraints.maxWidth,
+                                        height: constraints.maxHeight,
+                                        child: Column(
+                                          children: [
+                                            if(partidasByKey[currentKey].isNotEmpty && _admin == true)
+                                              Padding(
+                                                padding: const EdgeInsets.only(bottom: 16.0),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    ElevatedButton.icon(
+                                                      onPressed: () => setState(() => partidasByKey[currentKey].shuffle(Random())),
+                                                      label: const Text('Embaralhar partidas'),
+                                                      icon: const Icon(Icons.shuffle),
+                                                    ),
+                                                    const SizedBox(width: 16),
+                                                    ElevatedButton.icon(
+                                                      onPressed: () async {
+                                                        final playersIds = players.map((p) => p.id!).toList();
+                                                        final matchPlayers = dataProvider.tournament!.jogadores!.where((p) => playersIds.contains(p.id)).toList();
+                                                        final partida = await dataProvider.addRoundManually(context, jogadoresDisponiveis: matchPlayers);
+                                                        if(partida != null) {
+                                                          setState(() => partidasByKey[currentKey].add(partida));
+                                                          saveData(setKeys: false, setPlayers: false);
+                                                        }
+                                                      },
+                                                      label: const Text('Adicionar partida'),
+                                                      icon: const Icon(Icons.add),
+                                                    ),
+                                                    const SizedBox(width: 16),
+                                                    if(_loading)
+                                                      Container(
+                                                        width: 200,
+                                                        height: 50,
+                                                        alignment: Alignment.center,
+                                                        child: SizedBox(
+                                                            width: 35,
+                                                            child: const CircularProgressIndicator()
+                                                        ),
+                                                      )
+                                                    else
+                                                      if(partidasByKey[currentKey].any((p) => p.finished == null))
+                                                        ElevatedButton.icon(
+                                                          onPressed: simulateResults,
+                                                          label: const Text('Finalizar partidas'),
+                                                          icon: const Icon(Icons.check),
+                                                        ),
+                                                    const SizedBox(width: 16),
+                                                    ElevatedButton.icon(
+                                                      onPressed: resetMatches,
+                                                      label: const Text('Resetar partidas'),
+                                                      icon: const Icon(Icons.restart_alt),
+                                                    ),
+                                                    const SizedBox(width: 16),
+                                                    ElevatedButton.icon(
+                                                      onPressed: excluirPartidas,
+                                                      label: const Text('Excluir partidas'),
+                                                      icon: const Icon(Icons.delete),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            Container(
+                                              padding: const EdgeInsets.only(bottom: 16.0),
+                                              width: constraints.maxWidth * .5,
+                                              child: TextFormField(
+                                                decoration: InputDecoration(
+                                                  hintText: 'Pesquisar partida...',
+                                                  enabledBorder: OutlineInputBorder(
+                                                      borderSide: const BorderSide(color: Colors.grey),
+                                                      borderRadius: BorderRadius.circular(8)
+                                                  ),
+                                                  focusedBorder: OutlineInputBorder(
+                                                      borderSide: const BorderSide(color: Colors.grey),
+                                                      borderRadius: BorderRadius.circular(8)
+                                                  ),
+                                                  prefixIcon: const Icon(Icons.search)
+                                                ),
+                                                onFieldSubmitted: (value) {
+                                                  setState(() {
+                                                    final query = value.trim().toLowerCase();
+                                                    partidasFiltradas = partidasByKey[currentKey].where((partida) {
+                                                      final team1Names = partida.team1?.map((t) => t.nome!.toLowerCase()) ?? [];
+                                                      final team2Names = partida.team2?.map((t) => t.nome!.toLowerCase()) ?? [];
+                                                      return team1Names.any((nome) => nome.contains(query)) ||
+                                                          team2Names.any((nome) => nome.contains(query));
+                                                    }).toList();
+                                                  });
+                                                },
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: SizedBox(
+                                                width: constraints.maxWidth * .7,
+                                                height: constraints.maxHeight,
+                                                child: ListView.separated(
+                                                  itemCount: partidasFiltradas.length,
+                                                  padding: EdgeInsets.symmetric(horizontal: 24),
+                                                  separatorBuilder: (context, index) => const Divider(),
+                                                  itemBuilder: (context, index) {
+                                                    final partida = partidasFiltradas[index];
+                                                    final team1 = partida.team1;
+                                                    final team2 = partida.team2;
+
+                                                    return Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        const SizedBox(width: 8),
+                                                        Expanded(
+                                                          child: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                                            children: [
+                                                              Text('Jogo ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                              PartidaItem(
+                                                                team1: team1!,
+                                                                team2: team2!,
+                                                                partida: partida,
+                                                                playersPerTeam: _playersPerTeam,
+                                                                admin: _admin,
+                                                                onSave: () {
+                                                                  setState(() {});
+                                                                  saveData(setKeys: false, setPlayers: false);
+                                                                },
+                                                              )
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        if(_admin == true)
+                                                          Row(
+                                                            children: [
+                                                              if(partida.finished != true)
+                                                                IconButton(
+                                                                  onPressed: () {
+                                                                    context.go(
+                                                                      context.namedLocation(
+                                                                        'match-score',
+                                                                        pathParameters: {"nomeDoTorneio": widget.tournamentName},
+                                                                        queryParameters: {"m": "keys"}
+                                                                      ),
+                                                                      extra: {"partida": partida}
+                                                                    );
+                                                                  },
+                                                                  style: IconButton.styleFrom(
+                                                                      backgroundColor: Colors.blue,
+                                                                      foregroundColor: Colors.white,
+                                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))
+                                                                  ),
+                                                                  icon: const Icon(Icons.play_arrow_rounded)
+                                                                ),
+                                                              const SizedBox(width: 8),
+                                                              ElevatedButton(
+                                                                onPressed: () {
+                                                                  showDialog(
+                                                                    context: context,
+                                                                    builder: (context) => SetWinnerDialog(partida: partida, players: players)).then((res) {
+                                                                      if(res != null) {
+                                                                        setState(() {
+                                                                          partidasHistory = partidasFiltradas.where((p) => p.finished == true).toList();
+                                                                        });
+                                                                        saveData(setKeys: false);
+                                                                      }
+                                                                    }
+                                                                  );
+                                                                },
+                                                                style: ElevatedButton.styleFrom(
+                                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                                  fixedSize: const Size(118, 40),
+                                                                  backgroundColor: partida.vencedor != null ? Colors.blue : const Color.fromRGBO(42, 35, 42, 1)
+                                                                ),
+                                                                child: partida.vencedor != null ? const Text('EDITAR') : const Text('FINALIZAR')
+                                                              ),
+                                                              const SizedBox(width: 8),
+                                                              IconButton(
+                                                                  onPressed: () => showDialog(
+                                                                      context: context,
+                                                                      builder: (context) => const RemoveMatchDialog()
+                                                                  ).then((res) async {
+                                                                    if(res == true) {
+                                                                      final partida = partidasByKey[currentKey][index];
+                                                                      setState(() {
+                                                                        if(partida.finished == true) {
+                                                                          final team1 = partida.team1;
+                                                                          final team2 = partida.team2;
+                                                                          for(var player in team1 ?? []) {
+                                                                            final playerInList = getKeyPlayer(player);
+                                                                            playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) - 1;
+                                                                            if(partida.vencedor == 0) {
+                                                                              playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) - 1;
+                                                                            }
+                                                                          }
+                                                                          for(var player in team2 ?? []) {
+                                                                            final playerInList = getKeyPlayer(player);
+                                                                            playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) - 1;
+                                                                            if(partida.vencedor == 1) {
+                                                                              playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) - 1;
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                        partidasByKey[currentKey].remove(partida);
+                                                                      });
+                                                                      await saveData(setKeys: false);
+                                                                    }
+                                                                  }),
+                                                                  style: IconButton.styleFrom(
+                                                                      backgroundColor: Colors.red,
+                                                                      foregroundColor: Colors.white,
+                                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))
+                                                                  ),
+                                                                  icon: const Icon(Icons.delete)
+                                                              )
+                                                            ],
+                                                          ),
+                                                      ],
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                SingleChildScrollView(
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: MediaQuery.sizeOf(context).width * .7,
+                                      child: Column(
+                                        children: [
+                                          Text('Histórico de jogos', style: Theme.of(context).textTheme.titleLarge),
+                                          const SizedBox(height: 16),
+                                          for(var i = 0; i < partidasHistory.length; i++)
+                                            Padding(
+                                              padding: const EdgeInsets.only(bottom: 16.0, left: 12, right: 12),
+                                              child: Column(
+                                                children: [
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      SizedBox(
+                                                        width: 300,
+                                                        height: 60,
+                                                        child: Row(
+                                                          children: [
+                                                            Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: partidasHistory[i].team1!.map((player) => Text(player.nome!, overflow: TextOverflow.clip,)).toList(),
+                                                            ),
+                                                            const SizedBox(width: 16),
+                                                            if(partidasHistory[i].vencedor == 0)
+                                                              const Icon(FontAwesome5Solid.medal)
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Text(
+                                                        '${partidasHistory[i].pontos?.split('X')[0].trim() ?? ''} X ${partidasHistory[i].pontos?.split('X')[1].trim() ?? ''}',
+                                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                                                      ),
+                                                      SizedBox(
+                                                        width: 300,
+                                                        height: 60,
+                                                        child: Row(
+                                                          mainAxisAlignment: MainAxisAlignment.end,
+                                                          children: [
+                                                            if(partidasHistory[i].vencedor == 1)
+                                                              const Icon(FontAwesome5Solid.medal),
+                                                            const SizedBox(width: 16),
+                                                            Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.end,
+                                                              children: partidasHistory[i].team2!.map((player) => Text(player.nome!, overflow: TextOverflow.clip)).toList(),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const Divider()
+                                                ],
                                               ),
                                             ),
                                         ],
-                                      );
-                                    },
+                                      )
+                                    ),
                                   ),
                                 ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      child: Column(
-                        children: [
-                          const Divider(),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              SizedBox(
-                                  width: 140,
-                                  child: Text('Nome', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16))
-                              ),
-                              Text('Jogos', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16), textAlign: TextAlign.center,),
-                              Text('Pontos', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16)),
-                              Text('Media', style: Theme.of(context).textTheme.titleLarge!.copyWith(fontSize: 16)),
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: players.map((player) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  SizedBox(
-                                      width: 120,
-                                      child: Text(player.nome!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),)
-                                  ),
-                                  Text(player.jogosFinalizados?.toString() ?? '0', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
-                                  Text('${player.pontosAtuais ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),),
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 10.0),
-                                    child: Text(((player.pontosAtuais ?? 0) / (player.jogosFinalizados ?? 0)).toStringAsFixed(2), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center,),
-                                  ),
-                                ],
-                              ),
-                            )
-                            ).toList(),
-                          ),
-                          const SizedBox(height: 24),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text('Chaves', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
-                              const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  for(var i = 0; i < dataProvider.tournament!.chaves!.length; i++)
-                                    Column(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(dataProvider.tournament!.chaves![i].nome!, style: const TextStyle(fontWeight: FontWeight.bold),),
-                                        const SizedBox(height: 16),
-                                        SizedBox(
-                                          width: 100,
-                                          child: ListView.builder(
-                                            shrinkWrap: true,
-                                            physics: const NeverScrollableScrollPhysics(),
-                                            itemCount: dataProvider.tournament?.chaves![i].times.values.toList().length ?? 0,
-                                            itemBuilder: (context, index) {
-                                              final times = dataProvider.tournament?.chaves![i].times.values.toList()[index];
-                                              return Padding(
-                                                padding: const EdgeInsets.only(bottom: 16.0),
-                                                child: Column(
-                                                  children: times!.map((player) => Text(player.nome!, textAlign: TextAlign.center,)).toList(),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                ],
-                              )
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
-                    Column(
-                      children: [
-                        Text('Histórico de jogos', style: Theme.of(context).textTheme.titleLarge),
-                        const SizedBox(height: 16),
-                        for(var i = 0; i < partidasHistory.length; i++)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16.0, left: 12, right: 12),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Column(
-                                          children: partidasHistory[i].team1!.map((player) => Text(player.nome!, overflow: TextOverflow.clip,)).toList(),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        if(partidasHistory[i].vencedor == 0)
-                                          const Icon(FontAwesome5Solid.medal)
-                                      ],
-                                    ),
-                                    Text(
-                                      '${partidasHistory[i].pontos?.split('X')[0].trim() ?? ''} X ${partidasHistory[i].pontos?.split('X')[1].trim() ?? ''}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                                    ),
-                                    Row(
-                                      children: [
-                                        if(partidasHistory[i].vencedor == 1)
-                                          const Icon(FontAwesome5Solid.medal),
-                                        const SizedBox(width: 16),
-                                        Column(
-                                          children: partidasHistory[i].team2!.map((player) => Text(player.nome!, overflow: TextOverflow.clip)).toList(),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const Divider()
-                              ],
+                                FinalsWidget(
+                                  constraints: constraints,
+                                  chave: dataProvider.tournament!.chaves![currentKey],
+                                  admin: _admin ?? false
+                                )
+                              ]
                             ),
                           ),
-                        const SizedBox(height: 100)
+                        ),
                       ],
-                    )
-                  ],
-                ),
+                    );
+                  }
+                )
               );
-            }
+            },
           );
-        },
+        }
       ),
-      floatingActionButton: (_admin ?? false)
-          ? FloatingActionButton(onPressed: () => addRoundManually(), child: const Icon(Icons.add),)
-          : null
     );
   }
 }
@@ -668,8 +1067,10 @@ class PartidaItem extends StatefulWidget {
   final List<Player> team1;
   final List<Player> team2;
   final Partida partida;
-  final bool admin;
-  const PartidaItem({super.key, required this.team1, required this.team2, required this.partida, required this.admin});
+  final bool? admin;
+  final int playersPerTeam;
+  final Function() onSave;
+  const PartidaItem({super.key, required this.team1, required this.team2, required this.partida, required this.admin, required this.playersPerTeam, required this.onSave});
 
   @override
   State<PartidaItem> createState() => _PartidaItemState();
@@ -678,54 +1079,97 @@ class PartidaItem extends StatefulWidget {
 class _PartidaItemState extends State<PartidaItem> {
   TextStyle style() {
     if(widget.partida.finished ?? false) {
-      return const TextStyle(color: Colors.black54, fontSize: 30, fontWeight: FontWeight.bold);
+      return const TextStyle(color: Colors.black54, fontSize: 16);
     }
 
-    return const TextStyle(color: Colors.black, fontSize: 28);
+    return const TextStyle(color: Colors.black, fontSize: 18);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: widget.team1.map((p) => Text(p.nome ?? '', style: style())).toList(),
-            ),
-            if(widget.partida.vencedor == 0)
-              const Padding(
-                padding: EdgeInsets.only(left: 8.0),
-                child: Icon(FontAwesome5Solid.medal, size: 24),
+        SizedBox(
+          width: 300,
+          height: 60,
+          child: Row(
+            children: [
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: widget.team1.map((p) => Text(p.nome ?? '', style: style())).toList(),
               ),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24.0),
-          child: Text(
-            'X',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: widget.partida.finished ?? false ? 30 : 28,
-              color: widget.partida.finished ?? false ? Colors.black54 : Colors.black
-            )
+              if(widget.partida.vencedor == 0)
+                const Padding(
+                  padding: EdgeInsets.only(left: 16.0),
+                  child: Icon(FontAwesome5Solid.medal),
+                ),
+              const SizedBox(width: 16),
+              if(widget.admin == true)
+                IconButton(
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (context) => EditPlayersDialog(
+                      team: widget.team1,
+                      otherTeam: widget.team2,
+                      playersPerTeam: widget.playersPerTeam,
+                    )
+                  ).then((res) {
+                    if(res == true) {
+                      setState(() {});
+                      widget.onSave();
+                    }
+                  }),
+                  icon: const Icon(Icons.edit)
+                ),
+            ],
           ),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: widget.team2.map((p) => Text(p.nome ?? '', style: style())).toList(),
-            ),
-            if(widget.partida.vencedor == 1)
-              const Padding(
-                padding: EdgeInsets.only(left: 8.0),
-                child: Icon(FontAwesome5Solid.medal, size: 24,),
+        Text(
+            'X',
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: widget.partida.finished ?? false ? 18 : 20,
+                color: widget.partida.finished ?? false ? Colors.black54 : Colors.black
+            )
+        ),
+        SizedBox(
+          width: 300,
+          height: 60,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if(widget.partida.vencedor == 1)
+                const Padding(
+                  padding: EdgeInsets.only(right: 16.0),
+                  child: Icon(FontAwesome5Solid.medal),
+                ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: widget.team2.map((p) => Text(p.nome ?? '', style: style())).toList(),
               ),
-          ],
+              const SizedBox(width: 16),
+              if(widget.admin == true)
+                IconButton(
+                  onPressed: () => showDialog(
+                      context: context,
+                      builder: (context) => EditPlayersDialog(
+                        team: widget.team2,
+                        otherTeam: widget.team1,
+                        playersPerTeam: widget.playersPerTeam,
+                      )
+                  ).then((res) {
+                    if(res == true) {
+                      setState(() {});
+                      widget.onSave();
+                    }
+                  }),
+                  icon: const Icon(Icons.edit)
+                ),
+            ],
+          ),
         ),
       ],
     );

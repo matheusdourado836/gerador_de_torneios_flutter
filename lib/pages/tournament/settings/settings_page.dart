@@ -25,33 +25,61 @@ class SettingsPage extends StatelessWidget {
                 context: context,
                 builder: (context) => const AddPlayerDialog(isTournament: true)
             ).then((res) {
-              if(res is Player) {
-                dataProvider.tournament!.jogadores!.add(res);
-                context.pop(res);
+              if(res is List<Player>) {
+                dataProvider.tournament!.jogadores!.addAll(res);
+                final playersJson = dataProvider.tournament!.jogadores?.map((player) => player.toJson()).toList();
+                dataProvider.updateTorneioData({'jogadores': playersJson}, dataProvider.tournament!.id!);
+                if(mode == 'Chaves') {
+                  String? chaveSelecionada;
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return StatefulBuilder(
+                        builder: (context, setState) {
+                          return AlertDialog(
+                            title: const Text('Selecionar Chave'),
+                            content: DropdownButton<String>(
+                              isExpanded: true,
+                              value: chaveSelecionada,
+                              hint: const Text('Escolha uma chave'),
+                              items: dataProvider.tournament!.chaves!.map((chave) {
+                                return DropdownMenuItem<String>(
+                                  value: chave.nome,
+                                  child: Text(chave.nome ?? 'Sem nome'),
+                                );
+                              }).toList(),
+                              onChanged: (value) => setState(() => chaveSelecionada = value),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  if (chaveSelecionada != null) {
+                                    final chave = dataProvider.tournament!.chaves!.firstWhere((c) => c.nome == chaveSelecionada);
+                                    final timesLength = chave.times.keys.length;
+                                    chave.times["time${timesLength + 1}"] = res;
+                                    final keysJson = dataProvider.tournament!.chaves?.map((key) => key.toJson()).toList();
+                                    dataProvider.updateTorneioData({"chaves": keysJson}, dataProvider.tournament!.id!);
+                                  }
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('Confirmar'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Cancelar'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  );
+                }
               }
             }),
             contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             title: const Text('Adicionar jogador'),
             trailing: const Icon(Icons.add, size: 22),
-          ),
-          ListTile(
-            onTap: () {
-              for(var categoria in dataProvider.tournament?.categorias ?? []) {
-                for(Player jogador in categoria.players ?? []) {
-                  jogador.pontosAtuais = 0;
-                  jogador.jogosFinalizados = 0;
-                }
-              }
-              context.go(context.namedLocation(
-                  'fase2',
-                  queryParameters: (mode?.isEmpty ?? true) ? {} : {"m": "keys"},
-                  pathParameters: {"nomeDoTorneio": dataProvider.tournament!.nomeTorneio!}
-                )
-              );
-            },
-            contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            title: const Text('Ir para a próxima fase'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 18,),
           ),
           ListTile(
             onTap: () => showDialog(

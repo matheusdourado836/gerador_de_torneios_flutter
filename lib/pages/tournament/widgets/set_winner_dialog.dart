@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:volleyball_tournament_app/model/partida.dart';
+import 'package:volleyball_tournament_app/model/player.dart';
+
+import '../../../controller/data_controller.dart';
 
 class SetWinnerDialog extends StatefulWidget {
   final Partida partida;
-  const SetWinnerDialog({super.key, required this.partida});
+  final List<Player>? players;
+  const SetWinnerDialog({super.key, required this.partida, this.players});
 
   @override
   State<SetWinnerDialog> createState() => _SetWinnerDialogState();
@@ -33,6 +38,46 @@ class _SetWinnerDialogState extends State<SetWinnerDialog> {
   TextStyle unselectedTextStyle() => const TextStyle(
     color: Colors.grey,
   );
+
+  Player getMatchPlayer(Player player) {
+    final dataProvider = Provider.of<DataController>(context, listen: false);
+    Player? matchPlayer = widget.players?.firstWhere((p) => p.id == player.id, orElse: () => Player());
+    if(matchPlayer?.id == null) {
+      matchPlayer = dataProvider.tournament!.jogadores!.firstWhere((p) => p.id == player.id, orElse: () => Player());
+    }
+
+    return matchPlayer?.id != null ? matchPlayer! : player;
+  }
+
+  void cancelMatch() {
+    widget.partida.finished = null;
+    widget.partida.pontos = null;
+    final vencedor = widget.partida.vencedor == 0 ? widget.partida.team1 : widget.partida.team2;
+    for(Player player in vencedor ?? []) {
+      final playerInList = getMatchPlayer(player);
+      playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) - 1;
+      playerInList.pontos = (playerInList.pontos ?? 0) - 1;
+    }
+    for(Player player in [...widget.partida.team1 ?? [], ...widget.partida.team2 ?? []]) {
+      final playerInList = getMatchPlayer(player);
+      playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) - 1;
+    }
+    widget.partida.vencedor = null;
+  }
+
+  @override
+  void initState() {
+    _controller.text = widget.partida.pontos?.split('X')[0] ?? '';
+    _controller2.text = widget.partida.pontos?.split('X')[1] ?? '';
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _controller2.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +130,7 @@ class _SetWinnerDialogState extends State<SetWinnerDialog> {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('PLACAR (opcional)'),
+                const Text('PLACAR'),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -125,7 +170,38 @@ class _SetWinnerDialogState extends State<SetWinnerDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, [_timeA, _setPoints, '${_controller.text} X ${_controller2.text}']), child: const Text('Salvar')),
+        if(widget.partida.finished == true)
+          TextButton(
+            onPressed: () {
+              cancelMatch();
+              Navigator.pop(context, true);
+            },
+            child: const Text('Cancelar partida')
+          ),
+        TextButton(
+          onPressed: () {
+            if(widget.partida.finished == true) {
+              cancelMatch();
+            }
+            widget.partida.finished = true;
+            widget.partida.vencedor = _timeA ? 0 : 1;
+            if(_setPoints) {
+              widget.partida.pontos = '${_controller.text} X ${_controller2.text}';
+              final vencedor = widget.partida.vencedor == 0 ? widget.partida.team1 : widget.partida.team2;
+              for(Player player in vencedor ?? []) {
+                final playerInList = getMatchPlayer(player);
+                playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) + 1;
+                playerInList.pontos = (playerInList.pontos ?? 0) + 1;
+              }
+            }
+            for(Player player in [...widget.partida.team1 ?? [], ...widget.partida.team2 ?? []]) {
+              final playerInList = getMatchPlayer(player);
+              playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) + 1;
+            }
+            Navigator.pop(context, true);
+          },
+          child: const Text('Salvar')
+        ),
       ],
     );
   }

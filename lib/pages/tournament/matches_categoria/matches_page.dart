@@ -57,39 +57,43 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
     dataProvider.updateTorneioData({"partidas": partidasJson}, dataProvider.tournament!.id!);
   }
 
-  void updatePlayerRank(List<Player> players) {
+  void updatePlayerRank(Player player) {
     try{
       final categorias = dataProvider.tournament!.categorias!;
 
       // Função auxiliar para adicionar o jogador à categoria e removê-lo das outras.
-      void updateCategoria(int index, Player player) {
+      void updateCategoria(int index) {
         final categoria = categorias[index];
-        if (categoria.players?.where((p) => p.nome == player.nome).isNotEmpty ?? false) return;
+        if (categoria.players?.where((p) => p.id == player.id).isNotEmpty ?? false) return;
 
-        Player newPlayer = Player();
-        newPlayer = player;
-        newPlayer.jogosFinalizados = 0;
-        newPlayer.pontosAtuais = 0;
+        Player newPlayer = Player(
+          id: player.id,
+          createdAt: player.createdAt,
+          nome: player.nome,
+          sex: player.sex,
+          jogosFinalizados: 0,
+          pontosAtuais: 0,
+          pontos: player.pontos,
+        );
+        print('NEW PLAYER ${newPlayer.nome} - ${newPlayer.pontosAtuais} /// PLAYER  ${player.nome} - ${player.pontosAtuais}');
 
         categoria.players ??= [];
         categoria.players!.add(newPlayer);
 
         for (var otherCategoria in categorias.where((c) => c != categoria)) {
-          otherCategoria.players?.removeWhere((p) => p.nome == player.nome);
+          otherCategoria.players?.removeWhere((p) => p.id == player.id);
         }
       }
 
-      for(Player player in players) {
-        final playerMedia = (player.pontosAtuais ?? 0) / (player.jogosFinalizados ?? 0);
-        for (int i = fatorDeAjusteList.length - 1; i >= 0; i--) {
-          final fatorDeAjuste = fatorDeAjusteList[i];
-          if (i == 0) {
-            updateCategoria(0, player);
-            return;
-          } else if (playerMedia >= fatorDeAjuste) {
-            updateCategoria(i, player);
-            return;
-          }
+      final playerMedia = (player.pontosAtuais ?? 0) / (player.jogosFinalizados ?? 0);
+      for (int i = fatorDeAjusteList.length - 1; i >= 0; i--) {
+        final fatorDeAjuste = fatorDeAjusteList[i];
+        if (i == 0) {
+          updateCategoria(0);
+          return;
+        } else if (playerMedia >= fatorDeAjuste) {
+          updateCategoria(i);
+          return;
         }
       }
     }catch(e) {
@@ -131,24 +135,25 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
         partida.vencedor = vencedor;
         partida.finished = true;
         for(Player player in partida.team1!) {
-          final playerInList = players.firstWhere((p) => p.nome == player.nome);
+          final playerInList = players.firstWhere((p) => p.id == player.id);
           playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) + 1;
           if(vencedor == 0) {
             player.pontosAtuais = (player.pontosAtuais ?? 0) + 1;
             playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) + 1;
           }
+          updatePlayerRank(playerInList);
         }
         for(Player player in partida.team2!) {
-          final playerInList = players.firstWhere((p) => p.nome == player.nome);
+          final playerInList = players.firstWhere((p) => p.id == player.id);
           playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) + 1;
           if(vencedor == 1) {
             player.pontosAtuais = (player.pontosAtuais ?? 0) + 1;
             playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) + 1;
           }
+          updatePlayerRank(playerInList);
         }
         partidasHistory.add(partida);
       });
-      updatePlayerRank([...partida.team1 ?? [], ...partida.team2 ?? []]);
     }
     await saveData();
     setState(() => _loading = false);
@@ -160,12 +165,12 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
         partida.vencedor = null;
         partida.finished = false;
         for(Player player in partida.team1!) {
-          final playerInList = players.firstWhere((p) => p.nome == player.nome);
+          final playerInList = players.firstWhere((p) => p.id == player.id);
           playerInList.pontosAtuais = 0;
           playerInList.jogosFinalizados = 0;
         }
         for(Player player in partida.team2!) {
-          final playerInList = players.firstWhere((p) => p.nome == player.nome);
+          final playerInList = players.firstWhere((p) => p.id == player.id);
           playerInList.pontosAtuais = 0;
           playerInList.jogosFinalizados = 0;
         }
@@ -229,19 +234,19 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
   void _showJogadoresComQuemJaJogou(Player playerSelecionado) {
     // Filtra partidas finalizadas onde o jogador está em alguma dupla
     final partidasFinalizadas = partidas.where((p) => (p.finished == true) &&
-        (p.team1!.map((t) => t.nome).contains(playerSelecionado.nome) || p.team2!.map((t) => t.nome).contains(playerSelecionado.nome))).toList();
+        (p.team1!.map((t) => t.id).contains(playerSelecionado.id) || p.team2!.map((t) => t.id).contains(playerSelecionado.id))).toList();
 
     // Set para evitar duplicatas
     final Set<Player> companheiros = {};
 
     for (final partida in partidasFinalizadas) {
-      final dupla = partida.team1!.map((t) => t.nome).contains(playerSelecionado.nome) ? partida.team1! : partida.team2!;
-      companheiros.addAll(dupla.where((p) => p.nome != playerSelecionado.nome));
+      final dupla = partida.team1!.map((t) => t.id).contains(playerSelecionado.id) ? partida.team1! : partida.team2!;
+      companheiros.addAll(dupla.where((p) => p.id != playerSelecionado.id));
     }
 
 
-    final companheirosNames = companheiros.map((p) => p.nome).toList();
-    final partnersRemaining = dataProvider.tournament!.jogadores!.where((p) => !companheirosNames.contains(p.nome) && p.nome != playerSelecionado.nome).toList();
+    final companheirosIds = companheiros.map((p) => p.id).toList();
+    final partnersRemaining = dataProvider.tournament!.jogadores!.where((p) => !companheirosIds.contains(p.id) && p.id != playerSelecionado.id).toList();
 
     showDialog(
       context: context,
@@ -329,6 +334,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                   child: TabBarView(
                     controller: _tabController,
                     children: [
+                      // Jogadores
                       SingleChildScrollView(
                         child: Center(
                           child: SizedBox(
@@ -462,9 +468,9 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                                                   ).then((res) {
                                                     if(res is Player) {
                                                       setState(() {
-                                                        final index = players.indexWhere((p) => p.nome == player.nome);
+                                                        final index = players.indexWhere((p) => p.id == player.id);
                                                         players[index] = res;
-                                                        updatePlayerRank([players[index]]);
+                                                        updatePlayerRank(players[index]);
                                                       });
                                                       saveData(setMatches: false);
                                                     }
@@ -483,10 +489,10 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                                                    });
                                                    dataProvider.removeSingle('jogadores', player.toJson(), dataProvider.tournament!.id!);
                                                    for(Categoria categoria in dataProvider.tournament!.categorias ?? []) {
-                                                     categoria.players?.removeWhere((p) => p.nome == player.nome);
+                                                     categoria.players?.removeWhere((p) => p.id == player.id);
                                                      for(Partida partida in categoria.partidas ?? []) {
-                                                       partida.team1?.removeWhere((p) => p.nome == player.nome);
-                                                       partida.team2?.removeWhere((p) => p.nome == player.nome);
+                                                       partida.team1?.removeWhere((p) => p.id == player.id);
+                                                       partida.team2?.removeWhere((p) => p.id == player.id);
                                                      }
                                                    }
                                                    final categoriasJson = dataProvider.tournament!.categorias?.map((categoria) => categoria.toJson()).toList();
@@ -520,6 +526,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                           ),
                         ),
                       ),
+                      // Classificações
                       SingleChildScrollView(
                         child: Center(
                           child: SizedBox(
@@ -571,6 +578,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                           )
                         )
                       ),
+                      // Partidas
                       Center(
                         child: SizedBox(
                           width: MediaQuery.sizeOf(context).width,
@@ -717,6 +725,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                                                     team2: team2!,
                                                     partida: partida,
                                                     admin: _admin,
+                                                    playersBySide: playersBySide,
                                                   )
                                                 ],
                                               ),
@@ -726,11 +735,10 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                                                 onPressed: () {
                                                   showDialog(
                                                     context: context,
-                                                    builder: (context) => SetWinnerDialog(partida: partida)).then((res) {
+                                                    builder: (context) => SetWinnerDialog(partida: partida, players: players)).then((res) {
+
                                                       if (res is List) {
                                                         setState(() {
-                                                          dataProvider.updatePlayerGames(team1, players);
-                                                          dataProvider.updatePlayerGames(team2, players);
                                                           final partida = partidas[index];
                                                           partida.finished = true;
                                                           partida.vencedor = res[0] ? 0 : 1;
@@ -742,13 +750,19 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                                                             final perdedor = res[0] ? partida.team2 : partida.team1;
 
                                                             for (var player in vencedor ?? []) {
-                                                              final playerInList = players.firstWhere((p) => p.nome == player.nome);
+                                                              final playerInList = players.firstWhere((p) => p.id == player.id);
+                                                              playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) + 1;
                                                               playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) + 1;
                                                               playerInList.pontos = (playerInList.pontos ?? 0) + 1;
+                                                              updatePlayerRank(playerInList);
                                                             }
 
-                                                            updatePlayerRank(vencedor ?? []);
-                                                            updatePlayerRank(perdedor ?? []);
+                                                            for(var player in perdedor ?? []) {
+                                                              final playerInList = players.firstWhere((p) => p.id == player.id);
+                                                              playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) + 1;
+                                                              updatePlayerRank(playerInList);
+                                                            }
+
                                                           }
                                                         });
                                                         saveData();
@@ -778,20 +792,21 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                                                         final team1 = partida.team1;
                                                         final team2 = partida.team2;
                                                         for(var player in team1 ?? []) {
-                                                          final playerInList = players.firstWhere((p) => p.nome == player.nome);
+                                                          final playerInList = players.firstWhere((p) => p.id == player.id);
                                                           playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) - 1;
                                                           if(partida.vencedor == 0) {
                                                             playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) - 1;
                                                           }
+                                                          updatePlayerRank(playerInList);
                                                         }
                                                         for(var player in team2 ?? []) {
-                                                          final playerInList = players.firstWhere((p) => p.nome == player.nome);
+                                                          final playerInList = players.firstWhere((p) => p.id == player.id);
                                                           playerInList.jogosFinalizados = (playerInList.jogosFinalizados ?? 0) - 1;
                                                           if(partida.vencedor == 1) {
                                                             playerInList.pontosAtuais = (playerInList.pontosAtuais ?? 0) - 1;
                                                           }
+                                                          updatePlayerRank(playerInList);
                                                         }
-                                                        updatePlayerRank([...team1 ?? [], ...team2 ?? []]);
                                                       }
                                                       partidas.remove(partida);
                                                     });
@@ -815,6 +830,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                           ),
                         ),
                       ),
+                      // Histórico
                       SingleChildScrollView(
                         child: Center(
                           child: SizedBox(
@@ -894,7 +910,8 @@ class PartidaItem extends StatefulWidget {
   final List<Player> team2;
   final Partida partida;
   final bool? admin;
-  const PartidaItem({super.key, required this.team1, required this.team2, required this.partida, required this.admin});
+  final int playersBySide;
+  const PartidaItem({super.key, required this.team1, required this.team2, required this.partida, required this.admin, required this.playersBySide});
 
   @override
   State<PartidaItem> createState() => _PartidaItemState();
@@ -934,7 +951,11 @@ class _PartidaItemState extends State<PartidaItem> {
                 IconButton(
                   onPressed: () => showDialog(
                     context: context,
-                    builder: (context) => EditPlayersDialog(team: widget.team1, otherTeam: widget.team2)
+                    builder: (context) => EditPlayersDialog(
+                      team: widget.team1,
+                      otherTeam: widget.team2,
+                      playersPerTeam: widget.playersBySide,
+                    )
                   ).then((res) {
                     if(res == true) setState(() {});
                   }),
@@ -972,7 +993,11 @@ class _PartidaItemState extends State<PartidaItem> {
                 IconButton(
                   onPressed: () => showDialog(
                     context: context,
-                    builder: (context) => EditPlayersDialog(team: widget.team2, otherTeam: widget.team1)
+                    builder: (context) => EditPlayersDialog(
+                      team: widget.team2,
+                      otherTeam: widget.team1,
+                      playersPerTeam: widget.playersBySide,
+                    )
                   ).then((res) {
                     if(res == true) setState(() {});
                   }),

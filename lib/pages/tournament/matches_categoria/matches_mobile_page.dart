@@ -328,6 +328,7 @@ class _MatchesMobilePageState extends State<MatchesMobilePage> {
                                       team2: team2!,
                                       partida: partidas[index],
                                       admin: _admin ?? false,
+                                      playersBySide: playersBySide,
                                     ),
                                     if(_admin ?? false)
                                       Padding(
@@ -565,7 +566,8 @@ class PartidaItem extends StatefulWidget {
   final List<Player> team2;
   final Partida partida;
   final bool admin;
-  const PartidaItem({super.key, required this.team1, required this.team2, required this.partida, required this.admin});
+  final int playersBySide;
+  const PartidaItem({super.key, required this.team1, required this.team2, required this.partida, required this.admin, required this.playersBySide});
 
   @override
   State<PartidaItem> createState() => _PartidaItemState();
@@ -590,7 +592,11 @@ class _PartidaItemState extends State<PartidaItem> {
             child: ElevatedButton(
                 onPressed: () => showDialog(
                   context: context,
-                  builder: (context) => EditPlayersDialog(team: widget.team1, otherTeam: widget.team2)
+                  builder: (context) => EditPlayersDialog(
+                    team: widget.team1,
+                    otherTeam: widget.team2,
+                    playersPerTeam: widget.playersBySide,
+                  )
                 ).then((res) {
                   if(res ?? false) setState(() {});
                 }),
@@ -648,7 +654,11 @@ class _PartidaItemState extends State<PartidaItem> {
             child: ElevatedButton(
                 onPressed: () => showDialog(
                     context: context,
-                    builder: (context) => EditPlayersDialog(team: widget.team2, otherTeam: widget.team1)
+                    builder: (context) => EditPlayersDialog(
+                      team: widget.team2,
+                      otherTeam: widget.team1,
+                      playersPerTeam: widget.playersBySide,
+                    )
                 ).then((players) {
                   if(players != null && players is List) {
                     setState(() {

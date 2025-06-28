@@ -5,6 +5,8 @@ import '../../helpers/remover_acentos.dart';
 import '../../model/player.dart';
 import '../../shared/player_info_widget.dart';
 
+
+//TODO ARRUMAR OS LUGARES QUE USAM DESSE DIALOG PARA ADAPTAR O NOVO RETURN
 class AddPlayerDialog extends StatefulWidget {
   final bool isTournament;
   const AddPlayerDialog({super.key, this.isTournament = false});
@@ -20,45 +22,51 @@ class _AddPlayerDialogState extends State<AddPlayerDialog> with SingleTickerProv
   final ValueNotifier<bool> _loading = ValueNotifier(false);
   final ValueNotifier<List<Player>> searchList = ValueNotifier([]);
   List<Player> filteredPlayers = [];
-  Player? existingPlayer;
+  List<Player> selectedPlayers = [];
   String selectedGender = 'Masculino';
   String _error = '';
   late TabController _tabController;
 
   Widget playersList(List<Player> players) => Expanded(
     child: ListView.separated(
-      shrinkWrap: true,
       itemCount: players.length,
       separatorBuilder: (context, index) => const Divider(),
       itemBuilder: (context, index) {
         final player = players[index];
+        final isSelected = selectedPlayers.contains(player);
 
         return PlayerInfoWidget(
-            player: player,
-            trailing: Transform.scale(
-                scale: .7,
-                child: ChoiceChip(
-                  selected: existingPlayer == player,
-                  onSelected: (value) {
-                    setState(() => existingPlayer = player);
-                  },
-                  label: const Text('CHECK-IN', style: TextStyle(color: Colors.white)
-                  ),
-                  backgroundColor: const Color.fromRGBO(42, 35, 42, 1),
-                )
-            )
+          player: player,
+          trailing: Transform.scale(
+            scale: .7,
+            child: ChoiceChip(
+              selected: isSelected,
+              onSelected: (value) {
+                setState(() {
+                  if (value) {
+                    selectedPlayers.add(player);
+                  } else {
+                    selectedPlayers.remove(player);
+                  }
+                });
+              },
+              label: const Text('CHECK-IN', style: TextStyle(color: Colors.white)),
+              backgroundColor: const Color.fromRGBO(42, 35, 42, 1),
+            ),
+          ),
         );
       },
     ),
   );
 
   void loadPlayers() {
-    if(!widget.isTournament) {
+    if (!widget.isTournament) {
       filteredPlayers = dataProvider.players;
-    }else {
+    } else {
       final tournamentPlayers = dataProvider.tournament!.jogadores!.map((p) => p.nome!).toList();
-      final allPlayers = dataProvider.players;
-      filteredPlayers = allPlayers.where((player) => !tournamentPlayers.contains(player.nome!)).toList();
+      filteredPlayers = dataProvider.players
+          .where((player) => !tournamentPlayers.contains(player.nome!))
+          .toList();
     }
     searchList.value = filteredPlayers;
   }
@@ -67,19 +75,17 @@ class _AddPlayerDialogState extends State<AddPlayerDialog> with SingleTickerProv
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if(dataProvider.players.isEmpty) {
-        dataProvider.getPlayers().whenComplete(() {
-          loadPlayers();
-        });
-
-      }else {
+      if (dataProvider.players.isEmpty) {
+        dataProvider.getPlayers().whenComplete(loadPlayers);
+      } else {
         loadPlayers();
       }
     });
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      if(_tabController.index == 1) {
-        setState(() => existingPlayer = null);
+      if (_tabController.index == 1) {
+        _controller.clear();
+        setState(() => _error = '');
       }
     });
   }
@@ -90,13 +96,43 @@ class _AddPlayerDialogState extends State<AddPlayerDialog> with SingleTickerProv
     super.dispose();
   }
 
+  void _handleSave() async {
+    _loading.value = true;
+
+    List<Player> result = List.from(selectedPlayers);
+
+    if (_tabController.index == 1) {
+      if (_key.currentState!.validate()) {
+        final sex = selectedGender == 'Masculino' ? 0 : 1;
+        final newPlayer = Player.withName(_controller.text, sex);
+        final res = await dataProvider.addPlayer(player: newPlayer);
+        _loading.value = false;
+
+        if (res is String) {
+          setState(() => _error = res);
+          return;
+        } else {
+          result.add(res);
+        }
+      } else {
+        _loading.value = false;
+        return;
+      }
+    } else {
+      _loading.value = false;
+    }
+
+    if (result.isNotEmpty) {
+      Navigator.pop(context, result);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Adicionar jogador'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TabBar(
             controller: _tabController,
@@ -122,16 +158,13 @@ class _AddPlayerDialogState extends State<AddPlayerDialog> with SingleTickerProv
                       child: TextField(
                         controller: _controller,
                         onChanged: (newValue) {
-                          if(newValue.isEmpty) {
-                            searchList.value = [];
-                            filteredPlayers.sort((a, b) => a.nome!.compareTo(b.nome!));
-                          }else {
-                            final querySemAcento = removerAcentos(newValue.toLowerCase());
-                            final playersFound = filteredPlayers.where(
-                              (player) => removerAcentos(player.nome!.toLowerCase()).startsWith(querySemAcento)
-                                || player.nome!.toLowerCase().contains(querySemAcento)
+                          if (newValue.isEmpty) {
+                            searchList.value = filteredPlayers;
+                          } else {
+                            final query = removerAcentos(newValue.toLowerCase());
+                            searchList.value = filteredPlayers.where(
+                                  (p) => removerAcentos(p.nome!.toLowerCase()).contains(query),
                             ).toList();
-                            searchList.value = playersFound;
                           }
                         },
                         decoration: InputDecoration(
@@ -139,32 +172,24 @@ class _AddPlayerDialogState extends State<AddPlayerDialog> with SingleTickerProv
                           suffixIcon: IconButton(
                             onPressed: () {
                               _controller.clear();
-                              searchList.value = [];
+                              searchList.value = filteredPlayers;
                             },
-                            icon: const Icon(Icons.close)
+                            icon: const Icon(Icons.close),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8)
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8)
-                          ),
-                          prefixIcon: const Icon(Icons.search)
+                          prefixIcon: const Icon(Icons.search),
                         ),
                       ),
                     ),
-                    ValueListenableBuilder(
+                    ValueListenableBuilder<List<Player>>(
                       valueListenable: searchList,
                       builder: (context, value, _) {
-                        if(searchList.value.isNotEmpty) {
-                          return playersList(searchList.value);
-                        } else {
-                          return playersList(filteredPlayers);
-                        }
-                      }
-                    )
+                        final listToShow = value.isEmpty ? filteredPlayers : value;
+                        return playersList(listToShow);
+                      },
+                    ),
                   ],
                 ),
                 Column(
@@ -177,73 +202,51 @@ class _AddPlayerDialogState extends State<AddPlayerDialog> with SingleTickerProv
                         child: TextFormField(
                           controller: _controller,
                           validator: (value) {
-                            if(value != null) {
-                              if(value.isEmpty) {
-                                return 'este campo é obrigatório';
-                              }
+                            if (value == null || value.isEmpty) {
+                              return 'Este campo é obrigatório';
                             }
                             return null;
                           },
-                          decoration: const InputDecoration(
-                              hintText: 'Nome do jogador'
-                          ),
+                          decoration: const InputDecoration(hintText: 'Nome do jogador'),
                         ),
                       ),
                     ),
                     DropdownButton<String>(
                       value: selectedGender,
-                      items: <String>['Masculino', 'Feminino']
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedGender = newValue!;
-                        });
-                      },
+                      items: ['Masculino', 'Feminino']
+                          .map((value) => DropdownMenuItem(
+                        value: value,
+                        child: Text(value),
+                      ))
+                          .toList(),
+                      onChanged: (value) => setState(() => selectedGender = value!),
                     ),
-                    if(_error.isNotEmpty)
-                      Text(_error, style: const TextStyle(color: Colors.red))
+                    if (_error.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(_error, style: const TextStyle(color: Colors.red)),
+                      ),
                   ],
-                )
+                ),
               ],
             ),
           ),
         ],
       ),
       actions: [
-        ValueListenableBuilder(valueListenable: _loading, builder: (context, value, _) {
-          if(_loading.value) {
-            return const CircularProgressIndicator(strokeWidth: 1.5,);
-          }
-
-          return TextButton(
-              onPressed: () {
-                if(existingPlayer == null) {
-                  if(_key.currentState!.validate()) {
-                    _loading.value = true;
-                    final sex = selectedGender == 'Masculino' ? 0 : 1;
-                    final Player player = Player.withName(_controller.text, sex);
-                    dataProvider.addPlayer(player: player).then((res) {
-                      _loading.value = false;
-                      if(res is String) {
-                        setState(() => _error = res);
-                      }else {
-                        Navigator.pop(context, player);
-                      }
-                    });
-                  }
-                }else {
-                  Navigator.pop(context, existingPlayer!);
-                }
-              },
-              child: const Text('Salvar')
-          );
-        }),
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: Colors.red))),
+        ValueListenableBuilder<bool>(
+          valueListenable: _loading,
+          builder: (context, loading, _) {
+            if (loading) {
+              return const CircularProgressIndicator(strokeWidth: 1.5);
+            }
+            return TextButton(onPressed: _handleSave, child: const Text('Salvar'));
+          },
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar', style: TextStyle(color: Colors.red)),
+        ),
       ],
     );
   }

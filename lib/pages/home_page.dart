@@ -19,23 +19,25 @@ class HomePage extends StatelessWidget {
             ElevatedButton.icon(onPressed: () => GoRouter.of(context).go('/init_tournament'), label: const Text('Iniciar torneio'), icon: const Icon(Icons.sports_volleyball),),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-                onPressed: () => showDialog(
-                    context: context,
-                    builder: (context) => const _CodeDialog()
-                ).then((res) {
-                  if(res != null && res is Map<String, dynamic>) {
-                    if(res["mode"] == 'Chaves') {
-                      GoRouter.of(context).go('/tournament/${res["nome"]}/match?m=keys');
-                    }else {
-                      GoRouter.of(context).go('/tournament/${res["nome"]}/match');
-                    }
+              onPressed: () => showDialog(
+                  context: context,
+                  builder: (context) => const _CodeDialog()
+              ).then((res) {
+                if(res != null && res is Map<String, dynamic>) {
+                  if(res["mode"] == 'Chaves') {
+                    GoRouter.of(context).go('/tournament/${res["nome"]}/match?m=keys');
+                  }else {
+                    GoRouter.of(context).go('/tournament/${res["nome"]}/match');
                   }
-                }),
-                label: const Text('Entrar em um torneio'),
-                icon: const Icon(Icons.login_rounded)
+                }
+              }),
+              label: const Text('Entrar em um torneio'),
+              icon: const Icon(Icons.login_rounded)
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(onPressed: () => GoRouter.of(context).go('/players'), label: const Text('Jogadores'), icon: const Icon(Icons.group),),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(onPressed: () => GoRouter.of(context).go('/score'), label: const Text('Placar'), icon: const Icon(Icons.scoreboard_rounded),),
             const SizedBox(height: 24),
             ElevatedButton.icon(onPressed: () => GoRouter.of(context).go('/history'), label: const Text('Histórico'), icon: const Icon(Icons.history),),
           ],

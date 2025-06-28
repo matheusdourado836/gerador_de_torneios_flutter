@@ -277,6 +277,27 @@ class _CategoriaSectionState extends State<CategoriaSection> with SingleTickerPr
     return (vitorias + saldo) / jogos;
   }
 
+  Future<void> saveData({bool setPlayers = true, bool setMatches = true, bool setKeys = true}) async {
+    if(setPlayers) {
+      final playersJson = dataProvider.tournament!.jogadores!.map((jogador) => jogador.toJson()).toList();
+      await dataProvider.updateTorneioData({"jogadores": playersJson}, dataProvider.tournament!.id!);
+    }
+    if(setMatches) {
+      // for(var partidaChave in getChavesOrdenadas(dataProvider.tournament!.partidasChave)) {
+      //   final index = int.parse(partidaChave.key);
+      //   partidaChave.value.partidas = partidasByKey[index];
+      // }
+      //
+      // final partidasChaveMap = dataProvider.tournament!.partidasChave?.map((key, value) => MapEntry(key, value.toJson()));
+      //
+      // await dataProvider.updateTorneioData({"partidasChave": partidasChaveMap}, dataProvider.tournament!.id!);
+    }
+    if(setKeys) {
+      final keysJson = dataProvider.tournament!.chaves?.map((key) => key.toJson()).toList();
+      await dataProvider.updateTorneioData({"chaves": keysJson}, dataProvider.tournament!.id!);
+    }
+  }
+
   @override
   void initState() {
     partidas = widget.categoria.partidas ?? [];
@@ -491,7 +512,7 @@ class _CategoriaSectionState extends State<CategoriaSection> with SingleTickerPr
                             children: [
                               ElevatedButton(
                                 onPressed: () => startGames(),
-                                child: const Text('Gerar times')
+                                child: const Text('Gerar partidas')
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton(
@@ -529,6 +550,7 @@ class _CategoriaSectionState extends State<CategoriaSection> with SingleTickerPr
                                             team2: team2!,
                                             partida: partida,
                                             admin: widget.admin,
+                                            playersBySide: playersBySide,
                                           )
                                         ],
                                       ),
@@ -541,6 +563,12 @@ class _CategoriaSectionState extends State<CategoriaSection> with SingleTickerPr
                                               showDialog(
                                                 context: context,
                                                 builder: (context) => SetWinnerDialog(partida: partida)).then((res) {
+                                                if(res != null) {
+                                                  setState(() {
+                                                    partidasHistory = partidas.where((p) => p.finished == true).toList();
+                                                  });
+                                                  saveData(setKeys: false);
+                                                }
                                                   if (res is List) {
                                                     dataProvider.updatePlayerGames(team1, widget.players);
                                                     dataProvider.updatePlayerGames(team2, widget.players);

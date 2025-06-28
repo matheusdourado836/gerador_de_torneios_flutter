@@ -134,10 +134,7 @@ class _KnockoutStageKeysPageState extends State<KnockoutStageKeysPage> {
         "Final": finalMatch.toJson()
       };
     }
-    dataProvider.updateTorneioData(
-        {"selectedStage": stageMap},
-        dataProvider.tournament!.id!
-    );
+    dataProvider.updateTorneioData({"selectedStage": stageMap}, dataProvider.tournament!.id!);
   }
 
   bool classificarJogadoresProximaFase({required List<Player> team, required Fase proximaFase}) {
@@ -758,6 +755,7 @@ class _ThirdPlaceMatchState extends State<_ThirdPlaceMatch> {
   @override
   Widget build(BuildContext context) {
     late final dataProvider = Provider.of<DataController>(context, listen: false);
+    int playersBySide = int.parse(dataProvider.tournament!.qtdJogadoresEmCampo!.split('x')[0]);
     return Column(
       children: [
         const Text('Disputa de 3º lugar', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -779,6 +777,7 @@ class _ThirdPlaceMatchState extends State<_ThirdPlaceMatch> {
             team2: partidaSemi.team2!,
             partida: partidaSemi,
             admin: widget.admin,
+            playersBySide: playersBySide,
           ),
         ),
         ElevatedButton(
@@ -803,37 +802,37 @@ class _ThirdPlaceMatchState extends State<_ThirdPlaceMatch> {
 }
 
 
-List<Player> players = [
-  Player(nome: 'MatheusComBumBum', sex: 0),
-  //Player.withName('Maria', 1),
-  Player(nome: 'Joao', sex: 0),
-  //Player.withName('Bia', 1),
-  Player(nome: 'Victor', sex: 0),
-  //Player.withName('Anna', 1),
-  Player(nome: 'Luis', sex: 0),
-  Player(nome: 'Dani', sex: 1),
-  //Player.withName('Andre', 0),
-  //Player.withName('Clara', 1),
-  //Player.withName('Fernando', 0),
-  Player(nome: 'Juliana', sex: 1),
-  //Player.withName('Carlos', 0),
-  Player(nome: 'Roberta', sex: 1),
-  //Player.withName('Gustavo', 0),
-  Player(nome: 'Sofia', sex: 1),
-  //Player.withName('Rafael', 0),
-  //Player.withName('Larissa', 1),
-  //Player.withName('Thiago', 0),
-  Player(nome: 'Patricia', sex: 1),
-  //Player.withName('Bruno', 0),
-  Player(nome: 'Jéssica', sex: 1),
-  Player(nome: 'Diego', sex: 0),
-  Player(nome: 'Fernanda', sex: 1),
-  Player(nome: 'Eduardo', sex: 0),
-  Player(nome: 'Vanessa', sex: 1),
-  Player(nome: 'Marcelo', sex: 0),
-  Player(nome: 'Priscila', sex: 1),
-  Player(nome: 'Alan', sex: 0),
-  Player(nome: 'Natalia', sex: 1),
-  Player(nome: 'Leandro', sex: 0),
-  Player(nome: 'Rafaela', sex: 1),
-];
+// List<Player> players = [
+//   Player(nome: 'MatheusComBumBum', sex: 0),
+//   //Player.withName('Maria', 1),
+//   Player(nome: 'Joao', sex: 0),
+//   //Player.withName('Bia', 1),
+//   Player(nome: 'Victor', sex: 0),
+//   //Player.withName('Anna', 1),
+//   Player(nome: 'Luis', sex: 0),
+//   Player(nome: 'Dani', sex: 1),
+//   //Player.withName('Andre', 0),
+//   //Player.withName('Clara', 1),
+//   //Player.withName('Fernando', 0),
+//   Player(nome: 'Juliana', sex: 1),
+//   //Player.withName('Carlos', 0),
+//   Player(nome: 'Roberta', sex: 1),
+//   //Player.withName('Gustavo', 0),
+//   Player(nome: 'Sofia', sex: 1),
+//   //Player.withName('Rafael', 0),
+//   //Player.withName('Larissa', 1),
+//   //Player.withName('Thiago', 0),
+//   Player(nome: 'Patricia', sex: 1),
+//   //Player.withName('Bruno', 0),
+//   Player(nome: 'Jéssica', sex: 1),
+//   Player(nome: 'Diego', sex: 0),
+//   Player(nome: 'Fernanda', sex: 1),
+//   Player(nome: 'Eduardo', sex: 0),
+//   Player(nome: 'Vanessa', sex: 1),
+//   Player(nome: 'Marcelo', sex: 0),
+//   Player(nome: 'Priscila', sex: 1),
+//   Player(nome: 'Alan', sex: 0),
+//   Player(nome: 'Natalia', sex: 1),
+//   Player(nome: 'Leandro', sex: 0),
+//   Player(nome: 'Rafaela', sex: 1),
+// ];

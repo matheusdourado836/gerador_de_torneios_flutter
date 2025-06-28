@@ -3,8 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:volleyball_tournament_app/controller/data_controller.dart';
+import 'package:volleyball_tournament_app/model/partida.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
 import 'package:volleyball_tournament_app/model/tournament.dart';
+import 'package:volleyball_tournament_app/pages/tournament/widgets/edit_keys_dialog.dart';
 import 'package:volleyball_tournament_app/shared/player_info_widget.dart';
 import '../../helpers/remover_acentos.dart';
 import '../../model/categoria.dart';
@@ -138,10 +140,10 @@ class _TournamentPageState extends State<TournamentPage> {
                 context: context,
                 builder: (context) => const AddPlayerDialog(isTournament: true)
             ).then((res) {
-              if(res is Player) {
+              if(res is List<Player>) {
                 setState(() {
-                  addedPlayers++;
-                  readyPlayers.add(res);
+                  addedPlayers += res.length;
+                  readyPlayers.addAll(res);
                 });
               }
             }),
@@ -467,7 +469,18 @@ class _ChavesWidgetState extends State<ChavesWidget> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(chave.nome ?? ''),
+                      Row(
+                        children: [
+                          Text(chave.nome ?? ''),
+                          IconButton(
+                            onPressed: () => showDialog(
+                              context: context, 
+                              builder: (context) => EditKeysDialog(chave: chave)
+                            ).whenComplete(() => setState(() {})),
+                            icon: const Icon(Icons.edit)
+                          )
+                        ],
+                      ),
                       for(var i = 0; i < times.length; i++)
                         Row(
                           children: [
@@ -506,6 +519,16 @@ class _ChavesWidgetState extends State<ChavesWidget> {
                               widget.tournament.jogadores = widget.jogadores;
                               widget.tournament.partidas ??= [];
                               widget.tournament.ativo = true;
+                              Map<String, dynamic> partidasChave = {};
+                              for(var (index, chave) in widget.tournament.chaves!.indexed) {
+                                partidasChave[index.toString()] = {
+                                  "nome": chave.nome,
+                                  "partidas": []
+                                };
+                              }
+                              widget.tournament.partidasChave = partidasChave.map(
+                                (key, value) => MapEntry(key, PartidaChave.fromJson(value)),
+                              );
                               dataController.salvarTorneio().whenComplete(() {
                                 GoRouter.of(context).go(context.namedLocation(
                                   'matches',
