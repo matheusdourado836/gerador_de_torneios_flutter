@@ -23,8 +23,9 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
   int _teamB = 0;
   int teamSize = 6;
   String previousPoint = '';
-  final List<String> _points = [''];
+  List<String> _points = [''];
   bool _reversed = false;
+  bool _finished = false;
 
   void _startARotation() {
     _controllerA!.forward(from: 0);
@@ -44,30 +45,34 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        AnimatedBuilder(
-            animation: _controllerA!,
-            builder: (context, child) {
-              return Transform.rotate(
-                angle: (_controllerA?.value ?? 0) * 2 * 3.1416 * 3,
-                child: SizedBox(
-                  width: width * .35,
-                  child: InkWell(
-                      hoverColor: Colors.transparent,
-                      highlightColor: Colors.transparent,
-                      splashColor: Colors.transparent,
-                      onTap: () {
-                        if(_points.last == 'teamB') {
-                          _startARotation();
-                        }
-                        _points.add('teamA');
-                        setState(() => _teamA++);
-                        setMatchPoints();
-                      },
-                      child: Text(_teamA.toString(), style: TextStyle(fontSize: width * .28), textAlign: TextAlign.center,)
-                  ),
-                ),
-              );
-            }
+        Expanded(
+          child: Center(
+            child: AnimatedBuilder(
+                animation: _controllerA!,
+                builder: (context, child) {
+                  return Transform.rotate(
+                    angle: (_controllerA?.value ?? 0) * 2 * 3.1416 * 3,
+                    child: SizedBox(
+                      width: width * .35,
+                      child: InkWell(
+                          hoverColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                          splashColor: Colors.transparent,
+                          onTap: () {
+                            if(_points.last == 'teamB') {
+                              _startARotation();
+                            }
+                            _points.add('teamA');
+                            setState(() => _teamA++);
+                            setMatchPoints();
+                          },
+                          child: Text(_teamA.toString(), style: TextStyle(fontSize: width * .28), textAlign: TextAlign.center,)
+                      ),
+                    ),
+                  );
+                }
+            ),
+          ),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(fixedSize: Size(170, 40)),
@@ -90,30 +95,34 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        AnimatedBuilder(
-            animation: _controllerB!,
-            builder: (context, child) {
-              return Transform.rotate(
-                angle: (_controllerB?.value ?? 0) * 2 * 3.1416 * 3,
-                  child: SizedBox(
-                  width: width * .35,
-                  child: InkWell(
-                      hoverColor: Colors.transparent,
-                      highlightColor: Colors.transparent,
-                      splashColor: Colors.transparent,
-                      onTap: () {
-                        if(_points.last == 'teamA') {
-                          _startBRotation();
-                        }
-                        _points.add('teamB');
-                        setState(() => _teamB++);
-                        setMatchPoints();
-                      },
-                      child: Text(_teamB.toString(), style: TextStyle(fontSize: width * .28), textAlign: TextAlign.center,)
-                  ),
-                ),
-              );
-            }
+        Expanded(
+          child: Center(
+            child: AnimatedBuilder(
+                animation: _controllerB!,
+                builder: (context, child) {
+                  return Transform.rotate(
+                    angle: (_controllerB?.value ?? 0) * 2 * 3.1416 * 3,
+                      child: SizedBox(
+                      width: width * .35,
+                      child: InkWell(
+                          hoverColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                          splashColor: Colors.transparent,
+                          onTap: () {
+                            if(_points.last == 'teamA') {
+                              _startBRotation();
+                            }
+                            _points.add('teamB');
+                            setState(() => _teamB++);
+                            setMatchPoints();
+                          },
+                          child: Text(_teamB.toString(), style: TextStyle(fontSize: width * .28), textAlign: TextAlign.center,)
+                      ),
+                    ),
+                  );
+                }
+            ),
+          ),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(fixedSize: const Size(170, 40)),
@@ -208,23 +217,38 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                      onPressed: () {
-                        final teamB = partida?.team2?.map((p) => p.id).toList();
-                        final availablePlayers = jogadoresSelecionados
-                            .where((p) => !(teamB?.contains(p.id) ?? false))
-                            .toList();
+                    onPressed: () {
+                      final teamB = partida?.team2?.map((p) => p.id).toList();
+                      final availablePlayers = jogadoresSelecionados
+                          .where((p) => !(teamB?.contains(p.id) ?? false))
+                          .toList();
 
-                        availablePlayers.shuffle();
-
-                        if (availablePlayers.length >= teamSize) {
-                          setState(() {
-                            partida?.team1 = availablePlayers.take(teamSize).toList();
-                          });
-                        }
-                      },
-                      child: const Text('GERAR TIME')
+                      if (availablePlayers.length >= teamSize) {
+                        setState(() {
+                          final nextTeam = availablePlayers.take(teamSize).toList();
+                          partida?.team1 = nextTeam;
+                          for(var player in nextTeam) {
+                            jogadoresSelecionados.remove(player);
+                            jogadoresSelecionados.insert(jogadoresSelecionados.length, player);
+                          }
+                        });
+                      }
+                    },
+                    child: const Text('GERAR TIME')
                   ),
                 ],
+              ),
+            if((partida?.team1?.isNotEmpty ?? false) && (partida?.team2?.isNotEmpty ?? false))
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    final originalOrder = [...partida!.team1!, ...partida!.team2!];
+                    originalOrder.shuffle();
+                    partida!.team1 = originalOrder.take(teamSize).toList();
+                    partida!.team2 = originalOrder.skip(teamSize).toList();
+                  });
+                },
+                child: const Text('MISTURAR TIMES')
               ),
             if(partida?.team2?.isNotEmpty ?? false)
               Column(
@@ -283,11 +307,14 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                           .where((p) => !(teamA?.contains(p.id) ?? false))
                           .toList();
 
-                      availablePlayers.shuffle();
-
                       if (availablePlayers.length >= teamSize) {
                         setState(() {
-                          partida?.team2 = availablePlayers.take(teamSize).toList();
+                          final nextTeam = availablePlayers.take(teamSize).toList();
+                          partida?.team2 = nextTeam;
+                          for(var player in nextTeam) {
+                            jogadoresSelecionados.remove(player);
+                            jogadoresSelecionados.insert(jogadoresSelecionados.length, player);
+                          }
                         });
                       }
                     },
@@ -380,11 +407,50 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                       ],
                     ),
                   ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(fixedSize: const Size(160, 40)),
-                    onPressed: () => context.pop(),
-                    child: const Text('FINALIZAR')
-                  ),
+                  if(!_finished)
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(fixedSize: const Size(160, 40)),
+                      onPressed: () {
+                        setState(() {
+                          _finished = true;
+                          final pontosA = int.tryParse(partida?.pontos?.split(' X ')[0] ?? '') ?? 0;
+                          final pontosB = int.tryParse(partida?.pontos?.split(' X ')[1] ?? '') ?? 0;
+                          if(pontosA > pontosB) {
+                            partida?.vencedor = 0;
+                            partida?.team2 = [];
+                          }else {
+                            partida?.vencedor = 1;
+                            partida?.team1 = [];
+                          }
+                        });
+                      },
+                      child: const Text('FINALIZAR')
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(fixedSize: const Size(160, 40)),
+                          onPressed: () {
+                            setState(() {
+                              _finished = false;
+                              partida?.pontos = '0 X 0';
+                              _teamA = 0;
+                              _teamB = 0;
+                              _points = [''];
+                            });
+                          },
+                          child: const Text('COMEÇAR')
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                            style: ElevatedButton.styleFrom(fixedSize: const Size(160, 40)),
+                            onPressed: () => context.go('/'),
+                            child: const Text('SAIR')
+                        )
+                      ],
+                    ),
                   const SizedBox(height: 50),
                 ],
               ),
@@ -399,12 +465,59 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
               ),
             ),
             const Divider(),
+            if(jogadoresSelecionados.isNotEmpty)
+              Container(
+                width: width,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(child: Text('Jogadores Selecionados ${jogadoresSelecionados.length}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28))),
+                    const SizedBox(height: 16),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: jogadoresSelecionados.length,
+                      itemBuilder: (context, index) {
+                        final player = jogadoresSelecionados[index];
+                        return ListTile(
+                          leading: Text('${index + 1} -', style: const TextStyle(fontSize: 18)),
+                          title: Text(player.nome ?? 'N/A', style: const TextStyle(fontSize: 18)),
+                          trailing: IconButton(
+                            onPressed: () => setState(() => jogadoresSelecionados.remove(player)),
+                            icon: const Icon(Icons.delete),
+                          ),
+                        );
+                      },
+                      separatorBuilder: (context, index) => const Divider(),
+                    )
+                  ],
+                )
+              ),
+            const Divider(),
             if(widget.partida == null)
               SizedBox(
                 width: width,
                 child: CheckInOutWidget(
                   players: dataController.players,
                   jogadoresSelecionados: jogadoresSelecionados,
+                  toggleSelecionado: (p) {
+                    setState(() {
+                      if (jogadoresSelecionados.contains(p)) {
+                        jogadoresSelecionados.remove(p);
+                      } else {
+                        jogadoresSelecionados.add(p);
+                      }
+                    });
+                  },
+                  selectAll: (players) {
+                    setState(() {
+                      for (var player in players) {
+                        if (!jogadoresSelecionados.contains(player)) {
+                          jogadoresSelecionados.add(player);
+                        }
+                      }
+                    });
+                  },
                 ),
               )
           ],
@@ -513,11 +626,15 @@ class _TeamDialogState extends State<TeamDialog> {
 class CheckInOutWidget extends StatefulWidget {
   final List<Player> players;
   final List<Player> jogadoresSelecionados;
+  final Function(Player player) toggleSelecionado;
+  final Function(List<Player> player) selectAll;
 
   const CheckInOutWidget({
     super.key,
     required this.players,
     required this.jogadoresSelecionados,
+    required this.toggleSelecionado,
+    required this.selectAll,
   });
 
   @override
@@ -534,26 +651,6 @@ class _CheckInOutWidgetState extends State<CheckInOutWidget> {
     player.nome?.toLowerCase().contains(searchQuery.toLowerCase()) ??
         false)
         .toList();
-  }
-
-  void toggleSelecionado(Player player) {
-    setState(() {
-      if (widget.jogadoresSelecionados.contains(player)) {
-        widget.jogadoresSelecionados.remove(player);
-      } else {
-        widget.jogadoresSelecionados.add(player);
-      }
-    });
-  }
-
-  void selecionarTodos() {
-    setState(() {
-      for (var player in filteredPlayers) {
-        if (!widget.jogadoresSelecionados.contains(player)) {
-          widget.jogadoresSelecionados.add(player);
-        }
-      }
-    });
   }
 
   @override
@@ -581,7 +678,7 @@ class _CheckInOutWidgetState extends State<CheckInOutWidget> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
-            onPressed: selecionarTodos,
+            onPressed: () => widget.selectAll(filteredPlayers),
             icon: const Icon(Icons.group_add),
             label: const Text('Adicionar Todos'),
           ),
@@ -606,7 +703,7 @@ class _CheckInOutWidgetState extends State<CheckInOutWidget> {
                       : Icons.check_box_outline_blank,
                   color: selecionado ? Colors.green : null,
                 ),
-                onPressed: () => toggleSelecionado(player),
+                onPressed: () => widget.toggleSelecionado(player),
               ),
             );
           },
