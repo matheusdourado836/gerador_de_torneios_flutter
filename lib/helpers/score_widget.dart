@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:volleyball_tournament_app/helpers/remover_acentos.dart';
 import 'package:volleyball_tournament_app/model/partida.dart';
 import 'package:volleyball_tournament_app/model/player.dart';
 import '../controller/data_controller.dart';
@@ -16,6 +17,7 @@ class ScoreWidget extends StatefulWidget {
 class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin {
   late final dataController = Provider.of<DataController>(context, listen: false);
   Partida? partida;
+  List<Player> jogadores = [];
   List<Player> jogadoresSelecionados = [];
   AnimationController? _controllerA;
   AnimationController? _controllerB;
@@ -200,7 +202,7 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                     onPressed: () {
                       showDialog(
                         context: context,
-                        builder: (context) => TeamDialog(timesDisponiveis: [], teamSize: teamSize),
+                        builder: (context) => TeamDialog(timesDisponiveis: [], jogadores: jogadores, teamSize: teamSize),
                       ).then((res) {
                         if(res is Map) {
                           setState(() {
@@ -229,7 +231,7 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                           partida?.team1 = nextTeam;
                           for(var player in nextTeam) {
                             jogadoresSelecionados.remove(player);
-                            jogadoresSelecionados.insert(jogadoresSelecionados.length, player);
+                            jogadoresSelecionados.add(player);
                           }
                         });
                       }
@@ -284,7 +286,7 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                     onPressed: () {
                       showDialog(
                         context: context,
-                        builder: (context) => TeamDialog(timesDisponiveis: [], teamSize: teamSize),
+                        builder: (context) => TeamDialog(timesDisponiveis: [], jogadores: jogadores, teamSize: teamSize),
                       ).then((res) {
                         if(res is Map) {
                           setState(() {
@@ -313,7 +315,7 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                           partida?.team2 = nextTeam;
                           for(var player in nextTeam) {
                             jogadoresSelecionados.remove(player);
-                            jogadoresSelecionados.insert(jogadoresSelecionados.length, player);
+                            jogadoresSelecionados.add(player);
                           }
                         });
                       }
@@ -350,7 +352,7 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if(dataController.players.isEmpty) {
-        dataController.getPlayers();
+        dataController.getPlayers().whenComplete(() => setState(() => jogadores = dataController.players));
       }
     });
     super.initState();
@@ -417,9 +419,15 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                           final pontosB = int.tryParse(partida?.pontos?.split(' X ')[1] ?? '') ?? 0;
                           if(pontosA > pontosB) {
                             partida?.vencedor = 0;
+                            final playersTeam2 = partida?.team2?.map((p) => p.id).toList() ?? [];
+                            jogadoresSelecionados.removeWhere((p) => playersTeam2.contains(p.id));
+                            jogadoresSelecionados.addAll(partida?.team2 ?? []);
                             partida?.team2 = [];
                           }else {
                             partida?.vencedor = 1;
+                            final playersTeam1 = partida?.team1?.map((p) => p.id).toList() ?? [];
+                            jogadoresSelecionados.removeWhere((p) => playersTeam1.contains(p.id));
+                            jogadoresSelecionados.addAll(partida?.team1 ?? []);
                             partida?.team1 = [];
                           }
                         });
@@ -472,11 +480,22 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Center(child: Text('Jogadores Selecionados ${jogadoresSelecionados.length}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28))),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(),
+                        Text('Jogadores ${jogadoresSelecionados.length}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28)),
+                        IconButton(
+                            onPressed: () => setState(() => jogadoresSelecionados.shuffle()),
+                            icon: const Icon(Icons.shuffle, size: 32)
+                        )
+                      ],
+                    ),
                     const SizedBox(height: 16),
                     ListView.separated(
                       shrinkWrap: true,
                       itemCount: jogadoresSelecionados.length,
+                      physics: const NeverScrollableScrollPhysics(),
                       itemBuilder: (context, index) {
                         final player = jogadoresSelecionados[index];
                         return ListTile(
@@ -498,7 +517,7 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
               SizedBox(
                 width: width,
                 child: CheckInOutWidget(
-                  players: dataController.players,
+                  players: jogadores,
                   jogadoresSelecionados: jogadoresSelecionados,
                   toggleSelecionado: (p) {
                     setState(() {
@@ -519,7 +538,8 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                     });
                   },
                 ),
-              )
+              ),
+            const SizedBox(height: 200)
           ],
         ),
       ),
@@ -529,9 +549,10 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
 
 class TeamDialog extends StatefulWidget {
   final List<ExistingTeam> timesDisponiveis;
+  final List<Player> jogadores;
   final int teamSize;
 
-  const TeamDialog({super.key, required this.timesDisponiveis, required this.teamSize});
+  const TeamDialog({super.key, required this.timesDisponiveis, required this.jogadores, required this.teamSize});
 
   @override
   State<TeamDialog> createState() => _TeamDialogState();
@@ -642,15 +663,14 @@ class CheckInOutWidget extends StatefulWidget {
 }
 
 class _CheckInOutWidgetState extends State<CheckInOutWidget> {
+  final TextEditingController _controller = TextEditingController();
   String searchQuery = '';
 
   List<Player> get filteredPlayers {
     if (searchQuery.isEmpty) return widget.players;
     return widget.players
-        .where((player) =>
-    player.nome?.toLowerCase().contains(searchQuery.toLowerCase()) ??
-        false)
-        .toList();
+      .where((player) =>
+    removerAcentos(player.nome?.toLowerCase() ?? '').contains(searchQuery.toLowerCase())).toList();
   }
 
   @override
@@ -661,6 +681,7 @@ class _CheckInOutWidgetState extends State<CheckInOutWidget> {
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: TextField(
+            controller: _controller,
             decoration: const InputDecoration(
               labelText: 'Pesquisar jogador',
               prefixIcon: Icon(Icons.search),
@@ -678,7 +699,11 @@ class _CheckInOutWidgetState extends State<CheckInOutWidget> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
-            onPressed: () => widget.selectAll(filteredPlayers),
+            onPressed: () {
+              widget.selectAll(filteredPlayers);
+              _controller.clear();
+              setState(() => searchQuery = '');
+            },
             icon: const Icon(Icons.group_add),
             label: const Text('Adicionar Todos'),
           ),
@@ -691,8 +716,7 @@ class _CheckInOutWidgetState extends State<CheckInOutWidget> {
           physics: const NeverScrollableScrollPhysics(),
           itemBuilder: (context, index) {
             final player = filteredPlayers[index];
-            final selecionado =
-            widget.jogadoresSelecionados.contains(player);
+            final selecionado = widget.jogadoresSelecionados.contains(player);
 
             return ListTile(
               title: Text(player.nome ?? 'Jogador sem nome'),
@@ -703,7 +727,11 @@ class _CheckInOutWidgetState extends State<CheckInOutWidget> {
                       : Icons.check_box_outline_blank,
                   color: selecionado ? Colors.green : null,
                 ),
-                onPressed: () => widget.toggleSelecionado(player),
+                onPressed: () {
+                  widget.toggleSelecionado(player);
+                  _controller.clear();
+                  setState(() => searchQuery = '');
+                },
               ),
             );
           },
