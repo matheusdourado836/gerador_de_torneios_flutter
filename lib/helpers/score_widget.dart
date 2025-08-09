@@ -219,23 +219,7 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () {
-                      final teamB = partida?.team2?.map((p) => p.id).toList();
-                      final availablePlayers = jogadoresSelecionados
-                          .where((p) => !(teamB?.contains(p.id) ?? false))
-                          .toList();
-
-                      if (availablePlayers.length >= teamSize) {
-                        setState(() {
-                          final nextTeam = availablePlayers.take(teamSize).toList();
-                          partida?.team1 = nextTeam;
-                          for(var player in nextTeam) {
-                            jogadoresSelecionados.remove(player);
-                            jogadoresSelecionados.add(player);
-                          }
-                        });
-                      }
-                    },
+                    onPressed: () => generateTeam(isTeamA: true),
                     child: const Text('GERAR TIME')
                   ),
                 ],
@@ -303,23 +287,7 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () {
-                      final teamA = partida?.team1?.map((p) => p.id).toList();
-                      final availablePlayers = jogadoresSelecionados
-                          .where((p) => !(teamA?.contains(p.id) ?? false))
-                          .toList();
-
-                      if (availablePlayers.length >= teamSize) {
-                        setState(() {
-                          final nextTeam = availablePlayers.take(teamSize).toList();
-                          partida?.team2 = nextTeam;
-                          for(var player in nextTeam) {
-                            jogadoresSelecionados.remove(player);
-                            jogadoresSelecionados.add(player);
-                          }
-                        });
-                      }
-                    },
+                    onPressed: () => generateTeam(isTeamA: false),
                     child: const Text('GERAR TIME')
                   ),
                 ],
@@ -329,6 +297,37 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
         const SizedBox.shrink()
       ],
     );
+  }
+
+  void generateTeam({bool isTeamA = true}) {
+    final team = isTeamA ? partida?.team2 : partida?.team1;
+    final teamIds = team?.map((p) => p.id).toList();
+    final availablePlayers = jogadoresSelecionados
+        .where((p) => !(teamIds?.contains(p.id) ?? false))
+        .toList();
+    if(isTeamA) {
+      if (availablePlayers.length >= teamSize) {
+        setState(() {
+          final nextTeam = availablePlayers.take(teamSize).toList();
+          partida?.team1 = nextTeam;
+          for(var player in nextTeam) {
+            jogadoresSelecionados.remove(player);
+            jogadoresSelecionados.add(player);
+          }
+        });
+      }
+    }else {
+      if (availablePlayers.length >= teamSize) {
+        setState(() {
+          final nextTeam = availablePlayers.take(teamSize).toList();
+          partida?.team2 = nextTeam;
+          for(var player in nextTeam) {
+            jogadoresSelecionados.remove(player);
+            jogadoresSelecionados.add(player);
+          }
+        });
+      }
+    }
   }
 
   @override
@@ -447,6 +446,12 @@ class _ScoreWidgetState extends State<ScoreWidget> with TickerProviderStateMixin
                               _teamA = 0;
                               _teamB = 0;
                               _points = [''];
+                              if(partida?.team1?.isEmpty ?? true) {
+                                generateTeam(isTeamA: true);
+                              }
+                              if(partida?.team2?.isEmpty ?? true) {
+                                generateTeam(isTeamA: false);
+                              }
                             });
                           },
                           child: const Text('COMEÇAR')
