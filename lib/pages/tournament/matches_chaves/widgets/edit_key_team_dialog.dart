@@ -45,7 +45,7 @@ class _EditKeyTeamDialogState extends State<EditKeyTeamDialog> {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: DropdownButtonFormField<Player>(
-                value: selectedPlayers[index],
+                initialValue: selectedPlayers[index],
                 decoration: InputDecoration(
                   labelText: 'Jogador ${index + 1}',
                   border: OutlineInputBorder(),

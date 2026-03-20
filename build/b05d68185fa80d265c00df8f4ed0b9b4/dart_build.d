@@ -1,0 +1,1 @@
+ /Users/matheusdourado/StudioProjects/gerador_de_torneios_flutter/build/b05d68185fa80d265c00df8f4ed0b9b4/dart_build_result.json: 

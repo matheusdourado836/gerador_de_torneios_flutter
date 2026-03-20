@@ -45,9 +45,7 @@ class _EditPlayersDialogState extends State<EditPlayersDialog> {
     selectedPlayers = List<Player?>.generate(widget.playersPerTeam, (index) {
       if (index < widget.team.length) {
         final nome = widget.team[index].nome;
-        return availablePlayers.firstWhere(
-          (p) => p.nome == nome,
-        );
+        return availablePlayers.firstWhere((p) => p.nome == nome);
       } else {
         return null;
       }
@@ -84,17 +82,15 @@ class _EditPlayersDialogState extends State<EditPlayersDialog> {
             padding: const EdgeInsets.symmetric(vertical: 6.0),
             child: DropdownButtonFormField<Player>(
               isExpanded: true,
-              value: selectedPlayers[index],
+              initialValue: selectedPlayers[index],
               decoration: InputDecoration(
                 labelText: 'Jogador ${index + 1}',
                 border: OutlineInputBorder(),
               ),
-              items: availablePlayers
-                  .map((player) => DropdownMenuItem<Player>(
+              items: availablePlayers.map((player) => DropdownMenuItem<Player>(
                 value: player,
                 child: Text('${player.nome!} - ${player.totalJogos ?? 0} jogos'),
-              ))
-                  .toList(),
+              )).toList(),
               onChanged: (Player? newValue) {
                 setState(() {
                   selectedPlayers[index] = newValue;

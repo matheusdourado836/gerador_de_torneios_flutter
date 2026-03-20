@@ -66,7 +66,7 @@ class _AddPlayerToKeyDialogState extends State<AddPlayerToKeyDialog> {
               labelText: 'Jogador disponível',
               border: OutlineInputBorder(),
             ),
-            value: selectedPlayer,
+            initialValue: selectedPlayer,
             isExpanded: true,
             items: availablePlayers.map((player) {
               return DropdownMenuItem<Player>(
@@ -82,7 +82,7 @@ class _AddPlayerToKeyDialogState extends State<AddPlayerToKeyDialog> {
               labelText: 'Escolha um time',
               border: OutlineInputBorder(),
             ),
-            value: selectedTeam,
+            initialValue: selectedTeam,
             isExpanded: true,
             items: [
               ...widget.existingTeams.map((team) {

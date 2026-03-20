@@ -585,7 +585,7 @@ class _TeamDialogState extends State<TeamDialog> {
           children: [
             // Seleção de modo
             DropdownButtonFormField<String>(
-              value: modoSelecionado,
+              initialValue: modoSelecionado,
               items: const [
                 DropdownMenuItem(value: 'time', child: Text('Selecionar Time Existente')),
                 DropdownMenuItem(value: 'montar', child: Text('Montar Time com Jogadores')),
@@ -602,7 +602,7 @@ class _TeamDialogState extends State<TeamDialog> {
 
             if (modoSelecionado == 'time')
               DropdownButtonFormField<ExistingTeam>(
-                value: timeSelecionado,
+                initialValue: timeSelecionado,
                 items: widget.timesDisponiveis.map((team) {
                   return DropdownMenuItem(value: team, child: Text(team.nome ?? 'Sem nome'));
                 }).toList(),
@@ -613,7 +613,7 @@ class _TeamDialogState extends State<TeamDialog> {
             if (modoSelecionado == 'montar') ...[
               for (int i = 0; i < widget.teamSize; i++)
                 DropdownButtonFormField<Player>(
-                  value: jogadoresSelecionados[i],
+                  initialValue: jogadoresSelecionados[i],
                   items: dataController.players
                     .where((j) => !jogadoresSelecionados.contains(j) || jogadoresSelecionados[i] == j)
                     .map((jogador) => DropdownMenuItem(value: jogador, child: Text(jogador.nome ?? 'N/A')))
